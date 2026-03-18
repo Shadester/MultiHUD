@@ -1,0 +1,70 @@
+name: MultiHUD
+
+options:
+  bundleIdPrefix: net.fakeapps
+  createIntermediateGroups: true
+  deploymentTarget:
+    macOS: "26.2"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: HGS3GTCF73
+    MACOSX_DEPLOYMENT_TARGET: "26.2"
+    CODE_SIGN_IDENTITY: "Developer ID Application"
+    CODE_SIGN_STYLE: Manual
+    OTHER_CODE_SIGN_FLAGS: "--timestamp"
+    ENABLE_HARDENED_RUNTIME: YES
+  configs:
+    Debug:
+      ENABLE_HARDENED_RUNTIME: NO
+      CODE_SIGN_INJECT_BASE_ENTITLEMENTS: YES
+    Release:
+      CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+
+targets:
+
+  MultiHUD:
+    type: application
+    platform: macOS
+    sources:
+      - path: MultiHUD
+        excludes:
+          - "*.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.fakeapps.MultiHUD
+        CODE_SIGN_ENTITLEMENTS: MultiHUD/MultiHUD.entitlements
+        PROVISIONING_PROFILE_SPECIFIER: 6d9119e9-6551-4353-b4f7-1cf5580a044e
+    dependencies:
+      - target: CameraExtension
+        embed: true
+      - sdk: WeatherKit.framework
+      - sdk: CoreLocation.framework
+    info:
+      path: MultiHUD/Info.plist
+      properties:
+        CFBundleDisplayName: MultiHUD
+        NSCameraUsageDescription: "MultiHUD uses your camera to apply overlays."
+        NSLocationWhenInUseUsageDescription: "MultiHUD uses your location to display local weather."
+
+  CameraExtension:
+    type: com.apple.product-type.system-extension
+    platform: macOS
+    sources:
+      - path: CameraExtension
+        excludes:
+          - "*.entitlements"
+          - "Info.plist"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.fakeapps.MultiHUD.CameraExtension
+        PRODUCT_NAME: net.fakeapps.MultiHUD.CameraExtension
+        ENABLE_APP_SANDBOX: YES
+        CODE_SIGN_ENTITLEMENTS: CameraExtension/CameraExtension.entitlements
+        INFOPLIST_FILE: CameraExtension/Info.plist
+        PROVISIONING_PROFILE_SPECIFIER: 7a1b1a40-d8c7-44e3-9641-535ca7b9df95
+    dependencies:
+      - sdk: AVFoundation.framework
+      - sdk: CoreMediaIO.framework
+      - sdk: SwiftUI.framework

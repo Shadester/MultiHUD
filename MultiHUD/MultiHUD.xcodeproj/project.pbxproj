@@ -1,0 +1,503 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0777D556F670702F8CF76198 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63705EBCC895B2BA346C4260 /* SwiftUI.framework */; };
+		34D96025EF5B202E18939934 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */; };
+		370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */; };
+		5414F958127917508B7CFFD1 /* WeatherKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 49F6EE44609BEC77CF432D82 /* WeatherKit.framework */; };
+		5791D2DD5B00CDA3CFF08BDD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */; };
+		5F4333E3CC66D78E95AA7E88 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */; };
+		649080689C17493B18479D00 /* CoreMediaIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */; };
+		722170BD66FA82EEC4AA6480 /* ExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */; };
+		B098453811690FEC5EF1D820 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 904149553F57F812D8E56818 /* WeatherService.swift */; };
+		B3789F335062364FE15A31D0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2729412BA9AF5422EC61BCD8 /* Assets.xcassets */; };
+		BB613EDF7C80FE0EC8D96292 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2C14C1FF291F0D2F9057931 /* WeatherService.swift */; };
+		BFA1F87733987567ED9E1671 /* CameraExtension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D0E15783C55EA864B41B12B8 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBA4FE82F5AE4519947E7B91 /* AVFoundation.framework */; };
+		D6DBD41FCB65FCB6E5FDC3D4 /* CameraExtensionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8376687F7C583086140A568 /* CameraExtensionProvider.swift */; };
+		DDC16C06954111A7CAFA4D50 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A74F687AB3F3622ED3327F /* main.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		443519E67D05F0D7A96F65C0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E0D5E38D3579ACDA4661EB22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4A97C9675EF2CCE4389AAA90;
+			remoteInfo = CameraExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D1EDABBF4D9B905CB3323A87 /* Embed System Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				BFA1F87733987567ED9E1671 /* CameraExtension.systemextension in Embed System Extensions */,
+			);
+			name = "Embed System Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		03A74F687AB3F3622ED3327F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		20B054380A88B2514460C1FC /* MultiHUD.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MultiHUD.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2729412BA9AF5422EC61BCD8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiHUDApp.swift; sourceTree = "<group>"; };
+		34DDC5B1799C5F6C32BD1287 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		49F6EE44609BEC77CF432D82 /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
+		5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
+		63705EBCC895B2BA346C4260 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		904149553F57F812D8E56818 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMediaIO.framework; path = System/Library/Frameworks/CoreMediaIO.framework; sourceTree = SDKROOT; };
+		D2C14C1FF291F0D2F9057931 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionManager.swift; sourceTree = "<group>"; };
+		DBA4FE82F5AE4519947E7B91 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		E8376687F7C583086140A568 /* CameraExtensionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraExtensionProvider.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		81F962614C8B092315E2C6E3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D0E15783C55EA864B41B12B8 /* AVFoundation.framework in Frameworks */,
+				649080689C17493B18479D00 /* CoreMediaIO.framework in Frameworks */,
+				0777D556F670702F8CF76198 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB3EBFFF83C3CFAAA27D2808 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5414F958127917508B7CFFD1 /* WeatherKit.framework in Frameworks */,
+				5F4333E3CC66D78E95AA7E88 /* CoreLocation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		57D15A7F5B6D549B58A81150 /* MultiHUD */ = {
+			isa = PBXGroup;
+			children = (
+				2729412BA9AF5422EC61BCD8 /* Assets.xcassets */,
+				A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */,
+				DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */,
+				34DDC5B1799C5F6C32BD1287 /* Info.plist */,
+				336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */,
+				A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */,
+				904149553F57F812D8E56818 /* WeatherService.swift */,
+			);
+			path = MultiHUD;
+			sourceTree = "<group>";
+		};
+		791433ADF6FF875D07CC08E1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DBA4FE82F5AE4519947E7B91 /* AVFoundation.framework */,
+				7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */,
+				ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */,
+				63705EBCC895B2BA346C4260 /* SwiftUI.framework */,
+				49F6EE44609BEC77CF432D82 /* WeatherKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		AF163A581B0B43366F92B8A9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */,
+				20B054380A88B2514460C1FC /* MultiHUD.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C79B6D8117D371FAF0C57765 /* CameraExtension */ = {
+			isa = PBXGroup;
+			children = (
+				E8376687F7C583086140A568 /* CameraExtensionProvider.swift */,
+				03A74F687AB3F3622ED3327F /* main.swift */,
+				D2C14C1FF291F0D2F9057931 /* WeatherService.swift */,
+			);
+			path = CameraExtension;
+			sourceTree = "<group>";
+		};
+		D0A39794670971866A8E2B5A = {
+			isa = PBXGroup;
+			children = (
+				C79B6D8117D371FAF0C57765 /* CameraExtension */,
+				57D15A7F5B6D549B58A81150 /* MultiHUD */,
+				791433ADF6FF875D07CC08E1 /* Frameworks */,
+				AF163A581B0B43366F92B8A9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4A97C9675EF2CCE4389AAA90 /* CameraExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AE8031DEB976FD4D85800347 /* Build configuration list for PBXNativeTarget "CameraExtension" */;
+			buildPhases = (
+				EEAE61270EE570C16C8A0F58 /* Sources */,
+				81F962614C8B092315E2C6E3 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CameraExtension;
+			productName = CameraExtension;
+			productReference = 5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */;
+			productType = "com.apple.product-type.system-extension";
+		};
+		8C2B9DA524AD8699B3AC632F /* MultiHUD */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ADF61AA11FB620E6905485E5 /* Build configuration list for PBXNativeTarget "MultiHUD" */;
+			buildPhases = (
+				4305FB9E0CAEF2820810D404 /* Sources */,
+				9D22AE95A1D3FDFF715F1A26 /* Resources */,
+				BB3EBFFF83C3CFAAA27D2808 /* Frameworks */,
+				D1EDABBF4D9B905CB3323A87 /* Embed System Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				442D86BBD165486F908218A4 /* PBXTargetDependency */,
+			);
+			name = MultiHUD;
+			productName = MultiHUD;
+			productReference = 20B054380A88B2514460C1FC /* MultiHUD.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E0D5E38D3579ACDA4661EB22 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					4A97C9675EF2CCE4389AAA90 = {
+						DevelopmentTeam = HGS3GTCF73;
+						ProvisioningStyle = Manual;
+					};
+					8C2B9DA524AD8699B3AC632F = {
+						DevelopmentTeam = HGS3GTCF73;
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = BB41B3AB8775D5E19BFA60FC /* Build configuration list for PBXProject "MultiHUD" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D0A39794670971866A8E2B5A;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4A97C9675EF2CCE4389AAA90 /* CameraExtension */,
+				8C2B9DA524AD8699B3AC632F /* MultiHUD */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9D22AE95A1D3FDFF715F1A26 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B3789F335062364FE15A31D0 /* Assets.xcassets in Resources */,
+				5791D2DD5B00CDA3CFF08BDD /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4305FB9E0CAEF2820810D404 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34D96025EF5B202E18939934 /* ContentView.swift in Sources */,
+				722170BD66FA82EEC4AA6480 /* ExtensionManager.swift in Sources */,
+				370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */,
+				B098453811690FEC5EF1D820 /* WeatherService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EEAE61270EE570C16C8A0F58 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D6DBD41FCB65FCB6E5FDC3D4 /* CameraExtensionProvider.swift in Sources */,
+				BB613EDF7C80FE0EC8D96292 /* WeatherService.swift in Sources */,
+				DDC16C06954111A7CAFA4D50 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		442D86BBD165486F908218A4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4A97C9675EF2CCE4389AAA90 /* CameraExtension */;
+			targetProxy = 443519E67D05F0D7A96F65C0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		11E7053BAD515D655125A782 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MultiHUD/MultiHUD.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = MultiHUD/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD;
+				PROVISIONING_PROFILE_SPECIFIER = "6d9119e9-6551-4353-b4f7-1cf5580a044e";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		1A9A413061BA810429566B39 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = HGS3GTCF73;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CODE_SIGN_FLAGS = "--timestamp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		2EF83F43AE1E3A2BC06EAFF4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CameraExtension/CameraExtension.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				INFOPLIST_FILE = CameraExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD.CameraExtension;
+				PRODUCT_NAME = net.fakeapps.MultiHUD.CameraExtension;
+				PROVISIONING_PROFILE_SPECIFIER = "7a1b1a40-d8c7-44e3-9641-535ca7b9df95";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		36085F2374E929FEDBE83F58 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = HGS3GTCF73;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_CODE_SIGN_FLAGS = "--timestamp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		67EEB580C0B49493A59DCB49 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CameraExtension/CameraExtension.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				INFOPLIST_FILE = CameraExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD.CameraExtension;
+				PRODUCT_NAME = net.fakeapps.MultiHUD.CameraExtension;
+				PROVISIONING_PROFILE_SPECIFIER = "7a1b1a40-d8c7-44e3-9641-535ca7b9df95";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A48E41514DD2A8EE1B9B5349 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MultiHUD/MultiHUD.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = MultiHUD/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD;
+				PROVISIONING_PROFILE_SPECIFIER = "6d9119e9-6551-4353-b4f7-1cf5580a044e";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		ADF61AA11FB620E6905485E5 /* Build configuration list for PBXNativeTarget "MultiHUD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A48E41514DD2A8EE1B9B5349 /* Debug */,
+				11E7053BAD515D655125A782 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AE8031DEB976FD4D85800347 /* Build configuration list for PBXNativeTarget "CameraExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2EF83F43AE1E3A2BC06EAFF4 /* Debug */,
+				67EEB580C0B49493A59DCB49 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BB41B3AB8775D5E19BFA60FC /* Build configuration list for PBXProject "MultiHUD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A9A413061BA810429566B39 /* Debug */,
+				36085F2374E929FEDBE83F58 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E0D5E38D3579ACDA4661EB22 /* Project object */;
+}
