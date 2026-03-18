@@ -1,0 +1,142 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A0F1E"/>
+      <stop offset="100%" stop-color="#0F1B35"/>
+    </linearGradient>
+    <radialGradient id="centerGlow" cx="50%" cy="52%" r="42%">
+      <stop offset="0%" stop-color="#0D2244" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#080E1C" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="cyanGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="sunGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="textGlow" x="-15%" y="-30%" width="130%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+  <rect width="1024" height="1024" fill="url(#centerGlow)"/>
+
+  <!-- Subtle grid -->
+  <line x1="0" y1="341" x2="1024" y2="341" stroke="#162040" stroke-width="1"/>
+  <line x1="0" y1="682" x2="1024" y2="682" stroke="#162040" stroke-width="1"/>
+  <line x1="341" y1="0" x2="341" y2="1024" stroke="#162040" stroke-width="1"/>
+  <line x1="682" y1="0" x2="682" y2="1024" stroke="#162040" stroke-width="1"/>
+
+  <!-- Camera frame background -->
+  <rect x="152" y="220" width="720" height="540" rx="18" fill="#0C1828" opacity="0.85" stroke="#16304A" stroke-width="1.5"/>
+
+  <!-- HUD corner brackets — top left -->
+  <path d="M 192 310 L 192 260 L 242 260" fill="none" stroke="#00D8FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#cyanGlow)"/>
+  <!-- top right -->
+  <path d="M 832 310 L 832 260 L 782 260" fill="none" stroke="#00D8FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#cyanGlow)"/>
+  <!-- bottom left -->
+  <path d="M 192 690 L 192 740 L 242 740" fill="none" stroke="#00D8FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#cyanGlow)"/>
+  <!-- bottom right -->
+  <path d="M 832 690 L 832 740 L 782 740" fill="none" stroke="#00D8FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#cyanGlow)"/>
+
+  <!-- Center crosshair -->
+  <circle cx="512" cy="490" r="22" fill="none" stroke="#00D8FF" stroke-width="2.5" opacity="0.55" filter="url(#cyanGlow)"/>
+  <circle cx="512" cy="490" r="4" fill="#00D8FF" opacity="0.7" filter="url(#cyanGlow)"/>
+  <line x1="290" y1="490" x2="462" y2="490" stroke="#00D8FF" stroke-width="1.5" opacity="0.35"/>
+  <line x1="562" y1="490" x2="734" y2="490" stroke="#00D8FF" stroke-width="1.5" opacity="0.35"/>
+  <line x1="512" y1="280" x2="512" y2="440" stroke="#00D8FF" stroke-width="1.5" opacity="0.35"/>
+  <line x1="512" y1="540" x2="512" y2="710" stroke="#00D8FF" stroke-width="1.5" opacity="0.35"/>
+
+  <!-- Sun icon (top-left of frame) -->
+  <!-- Sun body -->
+  <circle cx="310" cy="355" r="34" fill="none" stroke="#FFC040" stroke-width="6" filter="url(#sunGlow)" opacity="0.95"/>
+  <!-- Sun rays -->
+  <line x1="310" y1="302" x2="310" y2="314" stroke="#FFC040" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="310" y1="396" x2="310" y2="408" stroke="#FFC040" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="257" y1="355" x2="269" y2="355" stroke="#FFC040" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="351" y1="355" x2="363" y2="355" stroke="#FFC040" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="273" y1="318" x2="281" y2="326" stroke="#FFC040" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="339" y1="384" x2="347" y2="392" stroke="#FFC040" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="339" y1="318" x2="347" y2="326" stroke="#FFC040" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="273" y1="384" x2="281" y2="392" stroke="#FFC040" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- Temperature — primary HUD data -->
+  <text
+    x="512" y="615"
+    text-anchor="middle"
+    font-family="Helvetica Neue, Arial, sans-serif"
+    font-weight="700"
+    font-size="188"
+    fill="#FFFFFF"
+    opacity="0.95"
+    filter="url(#textGlow)"
+  >22°</text>
+
+  <!-- Condition label -->
+  <text
+    x="512" y="678"
+    text-anchor="middle"
+    font-family="Helvetica Neue, Arial, sans-serif"
+    font-weight="300"
+    font-size="44"
+    fill="#00D8FF"
+    opacity="0.75"
+    letter-spacing="10"
+  >SUNNY</text>
+
+  <!-- REC indicator (top right of frame) -->
+  <circle cx="760" cy="310" r="12" fill="#FF3B30" opacity="0.9" filter="url(#sunGlow)"/>
+  <text
+    x="780" y="317"
+    font-family="Helvetica Neue, Arial, sans-serif"
+    font-weight="500"
+    font-size="30"
+    fill="#FF3B30"
+    opacity="0.85"
+  >REC</text>
+
+  <!-- Bottom status bar inside frame -->
+  <text
+    x="200" y="776"
+    font-family="Helvetica Neue, Arial, sans-serif"
+    font-weight="400"
+    font-size="28"
+    fill="#00D8FF"
+    opacity="0.5"
+    letter-spacing="2"
+  >CAM 1</text>
+  <text
+    x="824" y="776"
+    text-anchor="end"
+    font-family="Helvetica Neue, Arial, sans-serif"
+    font-weight="400"
+    font-size="28"
+    fill="#00D8FF"
+    opacity="0.5"
+    letter-spacing="1"
+  >48.8°N  2.3°E</text>
+
+  <!-- Outer edge vignette -->
+  <rect width="1024" height="1024" fill="none" stroke="#000000" stroke-width="60" opacity="0.3"/>
+</svg>
