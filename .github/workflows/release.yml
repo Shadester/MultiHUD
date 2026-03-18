@@ -89,18 +89,6 @@ jobs:
             -exportPath "$RUNNER_TEMP/export" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
 
-      - name: Notarize app
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-        run: |
-          xcrun notarytool submit "$RUNNER_TEMP/export/MultiHUD.app" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_ID_PASSWORD" \
-            --team-id HGS3GTCF73 \
-            --wait
-          xcrun stapler staple "$RUNNER_TEMP/export/MultiHUD.app"
-
       - name: Create DMG
         run: |
           hdiutil create \
@@ -108,6 +96,18 @@ jobs:
             -srcfolder "$RUNNER_TEMP/export/MultiHUD.app" \
             -ov -format UDZO \
             "$RUNNER_TEMP/MultiHUD-${{ github.ref_name }}.dmg"
+
+      - name: Notarize DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        run: |
+          xcrun notarytool submit "$RUNNER_TEMP/MultiHUD-${{ github.ref_name }}.dmg" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id HGS3GTCF73 \
+            --wait
+          xcrun stapler staple "$RUNNER_TEMP/MultiHUD-${{ github.ref_name }}.dmg"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
