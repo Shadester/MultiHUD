@@ -8,10 +8,13 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    # Note: macOS 26.2 SDK required — update runner when GitHub supports macOS Tahoe
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest
 
       - name: Install XcodeGen
         run: brew install xcodegen
