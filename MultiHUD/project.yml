@@ -35,7 +35,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.fakeapps.MultiHUD
         CODE_SIGN_ENTITLEMENTS: MultiHUD/MultiHUD.entitlements
-        PROVISIONING_PROFILE_SPECIFIER: 6d9119e9-6551-4353-b4f7-1cf5580a044e
+        PROVISIONING_PROFILE_SPECIFIER: eb899144-0dde-4b24-870b-146893b0d344
     dependencies:
       - target: CameraExtension
         embed: true
