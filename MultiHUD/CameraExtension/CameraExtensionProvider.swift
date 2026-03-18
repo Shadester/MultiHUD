@@ -359,7 +359,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         extent: CGRect
     ) -> CIImage {
         let request = VNGeneratePersonSegmentationRequest()
-        request.qualityLevel = .balanced
+        request.qualityLevel = .accurate
         request.outputPixelFormat = kCVPixelFormatType_OneComponent8
 
         let handler = VNImageRequestHandler(cvPixelBuffer: webcamBuffer, options: [:])
@@ -371,6 +371,21 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         let maskScaleX = extent.width  / maskCI.extent.width
         let maskScaleY = extent.height / maskCI.extent.height
         maskCI = maskCI.transformed(by: CGAffineTransform(scaleX: maskScaleX, y: maskScaleY))
+
+        // Boost contrast to push gray mid-tones toward 0 or 1, eliminating the
+        // washed-out blend that occurs when the mask is uncertain (e.g. sky above head).
+        if let f = CIFilter(name: "CIColorControls") {
+            f.setValue(maskCI, forKey: kCIInputImageKey)
+            f.setValue(2.5,    forKey: kCIInputContrastKey)
+            maskCI = f.outputImage ?? maskCI
+        }
+
+        // Restore a soft edge on the person silhouette after the contrast sharpening.
+        if let f = CIFilter(name: "CIGaussianBlur") {
+            f.setValue(maskCI, forKey: kCIInputImageKey)
+            f.setValue(4.0,    forKey: kCIInputRadiusKey)
+            maskCI = (f.outputImage ?? maskCI).cropped(to: extent)
+        }
 
         // Scale and center-crop custom background to fill the output frame.
         let bgScaleX = extent.width  / background.extent.width

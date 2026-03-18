@@ -6,7 +6,10 @@ A macOS app that overlays live data onto a virtual camera feed — inspired by [
 
 - Creates a **virtual camera** (via CoreMediaIO system extension) selectable in Zoom, Meet, Teams, etc.
 - Composites your real webcam feed with live data overlays in real time
-- Current overlay: weather and temperature via WeatherKit
+- **Weather overlay** — current temperature and conditions via WeatherKit, always visible even when a video app applies its own background replacement
+- **Virtual background** — pick any image (JPEG, PNG, HEIC, …); the extension segments you from the background using Vision and composites you over it each frame
+- **Camera source selection** — choose which physical camera to use as the source when multiple cameras are available
+- **Auto-launch** — the host app starts automatically the moment a video app activates the virtual camera
 
 ## Requirements
 
@@ -34,7 +37,15 @@ Two targets defined in `project.yml` (managed by [XcodeGen](https://github.com/y
 | `MultiHUD` | `net.fakeapps.MultiHUD` | Host app — SwiftUI UI, installs the extension, fetches weather |
 | `CameraExtension` | `net.fakeapps.MultiHUD.CameraExtension` | CoreMediaIO system extension — captures webcam, renders overlay |
 
-The host app fetches weather via WeatherKit and writes it to a shared file. The extension reads that file to render the overlay — no network calls from the extension.
+The host app fetches weather via WeatherKit and writes it to a shared app group container. The extension reads those files to drive the overlay — no network calls from the extension.
+
+### Shared container files
+
+| File | Written by | Read by | Purpose |
+|---|---|---|---|
+| `weather.txt` | Host app | Extension | Current temperature + weather symbol |
+| `camera-id.txt` | Host app | Extension | `uniqueID` of the preferred camera source |
+| `background.jpg` | Host app | Extension | Virtual background image |
 
 ## Tech Stack
 
@@ -42,4 +53,5 @@ The host app fetches weather via WeatherKit and writes it to a shared file. The 
 - CoreMediaIO / CMIOExtension (virtual camera)
 - WeatherKit + CoreLocation
 - AVFoundation (webcam capture)
-- CoreGraphics / CoreText (overlay rendering)
+- Vision (`VNGeneratePersonSegmentationRequest`, virtual background)
+- CoreImage / CIFilter (compositing pipeline)
