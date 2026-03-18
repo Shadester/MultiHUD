@@ -14,6 +14,7 @@
 		5791D2DD5B00CDA3CFF08BDD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */; };
 		5F4333E3CC66D78E95AA7E88 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */; };
 		649080689C17493B18479D00 /* CoreMediaIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */; };
+		66876E6CDD7C02A945BC3408 /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DA46AA7F3707AE81214DE88 /* Vision.framework */; };
 		722170BD66FA82EEC4AA6480 /* ExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */; };
 		B098453811690FEC5EF1D820 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 904149553F57F812D8E56818 /* WeatherService.swift */; };
 		B3789F335062364FE15A31D0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2729412BA9AF5422EC61BCD8 /* Assets.xcassets */; };
@@ -59,6 +60,7 @@
 		63705EBCC895B2BA346C4260 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		904149553F57F812D8E56818 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		9DA46AA7F3707AE81214DE88 /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
 		A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMediaIO.framework; path = System/Library/Frameworks/CoreMediaIO.framework; sourceTree = SDKROOT; };
@@ -76,6 +78,7 @@
 				D0E15783C55EA864B41B12B8 /* AVFoundation.framework in Frameworks */,
 				649080689C17493B18479D00 /* CoreMediaIO.framework in Frameworks */,
 				0777D556F670702F8CF76198 /* SwiftUI.framework in Frameworks */,
+				66876E6CDD7C02A945BC3408 /* Vision.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +115,7 @@
 				7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */,
 				ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */,
 				63705EBCC895B2BA346C4260 /* SwiftUI.framework */,
+				9DA46AA7F3707AE81214DE88 /* Vision.framework */,
 				49F6EE44609BEC77CF432D82 /* WeatherKit.framework */,
 			);
 			name = Frameworks;
@@ -278,7 +282,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD;
-				PROVISIONING_PROFILE_SPECIFIER = "6d9119e9-6551-4353-b4f7-1cf5580a044e";
+				PROVISIONING_PROFILE_SPECIFIER = "eb899144-0dde-4b24-870b-146893b0d344";
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -462,7 +466,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD;
-				PROVISIONING_PROFILE_SPECIFIER = "6d9119e9-6551-4353-b4f7-1cf5580a044e";
+				PROVISIONING_PROFILE_SPECIFIER = "eb899144-0dde-4b24-870b-146893b0d344";
 				SDKROOT = macosx;
 			};
 			name = Debug;

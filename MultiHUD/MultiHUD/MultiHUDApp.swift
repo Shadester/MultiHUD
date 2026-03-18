@@ -12,6 +12,9 @@ struct MultiHUDApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { _ in
+                    // Woken by camera extension — weather fetch already running
+                }
         }
     }
 }

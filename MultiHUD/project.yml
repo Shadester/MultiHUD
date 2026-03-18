@@ -47,6 +47,10 @@ targets:
         CFBundleDisplayName: MultiHUD
         NSCameraUsageDescription: "MultiHUD uses your camera to apply overlays."
         NSLocationWhenInUseUsageDescription: "MultiHUD uses your location to display local weather."
+        CFBundleURLTypes:
+          - CFBundleURLName: net.fakeapps.MultiHUD
+            CFBundleURLSchemes:
+              - multihud
 
   CameraExtension:
     type: com.apple.product-type.system-extension
@@ -68,3 +72,4 @@ targets:
       - sdk: AVFoundation.framework
       - sdk: CoreMediaIO.framework
       - sdk: SwiftUI.framework
+      - sdk: Vision.framework

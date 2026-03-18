@@ -7,11 +7,24 @@ import SwiftUI
 import AppKit
 import AVFoundation
 import CoreLocation
+import UniformTypeIdentifiers
+
+private let sharedCameraIDFileURL: URL? =
+    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "HGS3GTCF73.net.fakeapps.MultiHUD")?
+        .appendingPathComponent("camera-id.txt")
+
+private let sharedBackgroundFileURL: URL? =
+    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "HGS3GTCF73.net.fakeapps.MultiHUD")?
+        .appendingPathComponent("background.jpg")
 
 struct ContentView: View {
 
     @State private var ext = ExtensionManager()
     @State private var cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+    @State private var cameras: [AVCaptureDevice] = []
+    @State private var selectedCameraID: String = ""
+    @State private var hasBackground = false
+    @State private var showBackgroundPicker = false
     @Environment(\.scenePhase) private var scenePhase
 
     private var locationStatus: CLAuthorizationStatus {
@@ -107,6 +120,39 @@ struct ContentView: View {
                 }
             }
 
+            if cameraStatus == .authorized, !cameras.isEmpty {
+                Picker("Camera source", selection: $selectedCameraID) {
+                    Text("Auto").tag("")
+                    ForEach(cameras, id: \.uniqueID) { cam in
+                        Text(cam.localizedName).tag(cam.uniqueID)
+                    }
+                }
+                .onChange(of: selectedCameraID) { _, id in
+                    guard let url = sharedCameraIDFileURL else { return }
+                    try? id.write(to: url, atomically: true, encoding: .utf8)
+                }
+            }
+
+            HStack(spacing: 8) {
+                if hasBackground {
+                    Text("Virtual background set")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Clear") { clearBackground() }
+                        .controlSize(.small)
+                } else {
+                    Button("Set virtual background…") { showBackgroundPicker = true }
+                }
+            }
+            .fileImporter(
+                isPresented: $showBackgroundPicker,
+                allowedContentTypes: [.image],
+                allowsMultipleSelection: false
+            ) { result in
+                guard case .success(let urls) = result, let url = urls.first else { return }
+                importBackground(from: url)
+            }
+
             Divider()
 
             Text("After installing, select **MultiHUD** as your camera in Zoom, Meet, or any video app.")
@@ -120,6 +166,14 @@ struct ContentView: View {
         .task {
             ext.activate()
             _ = HostWeatherService.shared
+            cameras = loadCameras()
+            if let url = sharedCameraIDFileURL,
+               let saved = try? String(contentsOf: url, encoding: .utf8) {
+                selectedCameraID = saved.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            hasBackground = sharedBackgroundFileURL.map {
+                FileManager.default.fileExists(atPath: $0.path)
+            } ?? false
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
@@ -131,6 +185,34 @@ struct ContentView: View {
     private func requestCameraAccess() async {
         let granted = await AVCaptureDevice.requestAccess(for: .video)
         cameraStatus = granted ? .authorized : .denied
+        if granted { cameras = loadCameras() }
+    }
+
+    private func loadCameras() -> [AVCaptureDevice] {
+        var types: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera, .external]
+        if #available(macOS 14.0, *) { types.append(.continuityCamera) }
+        return AVCaptureDevice.DiscoverySession(
+            deviceTypes: types, mediaType: .video, position: .unspecified
+        ).devices
+    }
+
+    private func importBackground(from url: URL) {
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+        guard let dest = sharedBackgroundFileURL,
+              let nsImage = NSImage(contentsOf: url),
+              let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        let rep = NSBitmapImageRep(cgImage: cgImage)
+        guard let data = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else { return }
+        try? data.write(to: dest)
+        hasBackground = true
+    }
+
+    private func clearBackground() {
+        if let url = sharedBackgroundFileURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        hasBackground = false
     }
 }
 

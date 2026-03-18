@@ -10,9 +10,19 @@ import CoreImage
 import SwiftUI
 import CoreGraphics
 import IOKit.audio
+import AppKit
+import Vision
 import os
 
 let kFrameRate: Int = 30
+
+private let sharedCameraIDFileURL: URL? =
+    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "HGS3GTCF73.net.fakeapps.MultiHUD")?
+        .appendingPathComponent("camera-id.txt")
+
+private let sharedBackgroundFileURL: URL? =
+    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "HGS3GTCF73.net.fakeapps.MultiHUD")?
+        .appendingPathComponent("background.jpg")
 
 private let logger = Logger(subsystem: "net.fakeapps.MultiHUD.CameraExtension", category: "camera")
 
@@ -45,6 +55,10 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     // Overlay text updated by WeatherService
     var overlayText: String = "…"
+
+    // Virtual background
+    private var backgroundCI: CIImage?
+    private var backgroundFileMtime: Date?
 
     init(localizedName: String) {
         super.init()
@@ -111,6 +125,10 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         timer.resume()
 
         sessionQueue.async { [weak self] in self?.startCaptureSession() }
+
+        if let url = URL(string: "multihud://wake") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     func stopStreaming() {
@@ -197,6 +215,15 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             logger.info("  device=\(d.localizedName, privacy: .public) type=\(d.deviceType.rawValue, privacy: .public)")
         }
 
+        if let url = sharedCameraIDFileURL,
+           let savedID = try? String(contentsOf: url, encoding: .utf8)
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+           !savedID.isEmpty,
+           let preferred = discoverySession.devices.first(where: { $0.uniqueID == savedID }) {
+            logger.info("Using preferred camera: \(preferred.localizedName, privacy: .public)")
+            return preferred
+        }
+
         let physicalTypes: Set<AVCaptureDevice.DeviceType> = {
             if #available(macOS 14.0, *) {
                 return [.builtInWideAngleCamera, .continuityCamera]
@@ -271,8 +298,10 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     private func render(input: CVPixelBuffer?, into output: CVPixelBuffer) {
         let extent = CGRect(x: 0, y: 0, width: kWidth, height: kHeight)
 
-        // Background: camera frame or solid dark fallback.
-        let background: CIImage
+        loadBackgroundIfNeeded()
+
+        // Scale webcam frame to output size, or use a dark fallback.
+        let webcamLayer: CIImage
         if let input {
             let img = CIImage(cvPixelBuffer: input)
             let sx = CGFloat(kWidth)  / img.extent.width
@@ -281,23 +310,85 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             let scaled = img.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
             let ox = (CGFloat(kWidth)  - scaled.extent.width)  / 2
             let oy = (CGFloat(kHeight) - scaled.extent.height) / 2
-            background = scaled
+            webcamLayer = scaled
                 .transformed(by: CGAffineTransform(translationX: ox, y: oy))
                 .cropped(to: extent)
         } else {
-            background = CIImage(color: CIColor(red: 0.08, green: 0.11, blue: 0.14))
+            webcamLayer = CIImage(color: CIColor(red: 0.08, green: 0.11, blue: 0.14))
                 .cropped(to: extent)
         }
 
-        // Render overlay as a SwiftUI view → CGImage → CIImage, then composite.
+        // Apply virtual background via person segmentation (if configured).
+        let baseLayer: CIImage
+        if let customBg = backgroundCI, let input {
+            baseLayer = applyVirtualBackground(
+                webcam: webcamLayer, webcamBuffer: input, background: customBg, extent: extent
+            )
+        } else {
+            baseLayer = webcamLayer
+        }
+
+        // Composite weather pill on top — always visible, even if the video app
+        // does its own background replacement on our output stream.
         let composite: CIImage
         if let overlayCI = makeOverlayCIImage(canvasSize: CGSize(width: kWidth, height: kHeight)) {
-            composite = overlayCI.composited(over: background)
+            composite = overlayCI.composited(over: baseLayer)
         } else {
-            composite = background
+            composite = baseLayer
         }
 
         ciContext.render(composite, to: output)
+    }
+
+    private func loadBackgroundIfNeeded() {
+        guard let url = sharedBackgroundFileURL else {
+            backgroundCI = nil
+            return
+        }
+        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+        let mtime = attrs?[.modificationDate] as? Date
+        guard mtime != backgroundFileMtime else { return }
+        backgroundFileMtime = mtime
+        backgroundCI = mtime != nil ? CIImage(contentsOf: url) : nil
+    }
+
+    private func applyVirtualBackground(
+        webcam: CIImage,
+        webcamBuffer: CVPixelBuffer,
+        background: CIImage,
+        extent: CGRect
+    ) -> CIImage {
+        let request = VNGeneratePersonSegmentationRequest()
+        request.qualityLevel = .balanced
+        request.outputPixelFormat = kCVPixelFormatType_OneComponent8
+
+        let handler = VNImageRequestHandler(cvPixelBuffer: webcamBuffer, options: [:])
+        guard (try? handler.perform([request])) != nil,
+              let maskBuffer = request.results?.first?.pixelBuffer else { return webcam }
+
+        // Scale mask to match output frame.
+        var maskCI = CIImage(cvPixelBuffer: maskBuffer)
+        let maskScaleX = extent.width  / maskCI.extent.width
+        let maskScaleY = extent.height / maskCI.extent.height
+        maskCI = maskCI.transformed(by: CGAffineTransform(scaleX: maskScaleX, y: maskScaleY))
+
+        // Scale and center-crop custom background to fill the output frame.
+        let bgScaleX = extent.width  / background.extent.width
+        let bgScaleY = extent.height / background.extent.height
+        let bgScale  = max(bgScaleX, bgScaleY)
+        let scaledBg = background.transformed(by: CGAffineTransform(scaleX: bgScale, y: bgScale))
+        let ox = (extent.width  - scaledBg.extent.width)  / 2
+        let oy = (extent.height - scaledBg.extent.height) / 2
+        let positionedBg = scaledBg
+            .transformed(by: CGAffineTransform(translationX: ox, y: oy))
+            .cropped(to: extent)
+
+        // CIBlendWithMask: white mask → inputImage (webcam/person), black → backgroundImage (custom bg).
+        guard let blend = CIFilter(name: "CIBlendWithMask") else { return webcam }
+        blend.setValue(webcam,       forKey: kCIInputImageKey)
+        blend.setValue(positionedBg, forKey: kCIInputBackgroundImageKey)
+        blend.setValue(maskCI,       forKey: kCIInputMaskImageKey)
+        return blend.outputImage ?? webcam
     }
 
     /// Renders the text pill as a SwiftUI view via ImageRenderer, returns a CIImage
