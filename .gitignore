@@ -1,0 +1,17 @@
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# XcodeGen generated project (regenerated from project.yml)
+MultiHUD/MultiHUD.xcodeproj/
+
+# Build artifacts
+MultiHUD/.build/
+
+# macOS
+.DS_Store

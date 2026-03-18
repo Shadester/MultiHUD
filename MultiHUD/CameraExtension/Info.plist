@@ -11,9 +11,9 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>1</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.9</string>
+	<string>1.0</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CMIOExtension</key>
