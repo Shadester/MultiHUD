@@ -70,6 +70,13 @@ jobs:
             <string>HGS3GTCF73</string>
             <key>signingStyle</key>
             <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>net.fakeapps.MultiHUD</key>
+              <string>MultiHUD Developer ID</string>
+              <key>net.fakeapps.MultiHUD.CameraExtension</key>
+              <string>MultiHUD CameraExtension Developer ID</string>
+            </dict>
           </dict>
           </plist>
           EOF
