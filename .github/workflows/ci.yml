@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: MultiHUD
+        run: xcodegen generate
+
+      - name: Run tests
+        working-directory: MultiHUD
+        run: |
+          xcodebuild \
+            -scheme MultiHUD \
+            -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' \
+            test

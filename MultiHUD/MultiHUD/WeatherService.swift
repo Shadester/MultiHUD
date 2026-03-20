@@ -34,8 +34,11 @@ final class HostWeatherService: NSObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
         // If location is already authorized, start immediately — the delegate
         // won't fire again just because we re-created the CLLocationManager.
-        if locationStatus == .authorizedAlways {
+        switch locationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
             locationManager.startUpdatingLocation()
+        default:
+            break
         }
     }
 
@@ -48,6 +51,7 @@ final class HostWeatherService: NSObject {
         refreshTask?.cancel()
         refreshTask = Task {
             while !Task.isCancelled {
+                var sleepSeconds: Int = 600
                 do {
                     let weather = try await weatherKit.weather(for: location)
                     let current  = weather.currentWeather
@@ -56,9 +60,9 @@ final class HostWeatherService: NSObject {
                     write("\(tempC)|\(tempF)|\(current.symbolName)")
                 } catch {
                     os_log(.error, "MultiHUD WeatherService: %{public}@", error.localizedDescription)
-                    write("Weather error: \(error.localizedDescription)")
+                    sleepSeconds = 60  // retry sooner after a network error
                 }
-                try? await Task.sleep(for: .seconds(600))
+                try? await Task.sleep(for: .seconds(sleepSeconds))
             }
         }
     }
@@ -66,22 +70,6 @@ final class HostWeatherService: NSObject {
     private func write(_ text: String) {
         guard let url = sharedWeatherFileURL else { return }
         try? text.write(to: url, atomically: true, encoding: .utf8)
-    }
-
-    private func conditionLabel(_ symbolName: String) -> String {
-        switch symbolName {
-        case let s where s.hasPrefix("sun"):          return "Sunny"
-        case let s where s.hasPrefix("cloud.sun"):   return "Partly Cloudy"
-        case let s where s.hasPrefix("cloud.bolt"):  return "Thunderstorm"
-        case let s where s.hasPrefix("cloud.rain"),
-             let s where s.hasPrefix("cloud.drizzle"): return "Rain"
-        case let s where s.hasPrefix("cloud.snow"),
-             let s where s.hasPrefix("snow"):        return "Snow"
-        case let s where s.hasPrefix("cloud"):       return "Cloudy"
-        case let s where s.hasPrefix("wind"):        return "Windy"
-        case let s where s.hasPrefix("fog"):         return "Foggy"
-        default:                                     return ""
-        }
     }
 }
 

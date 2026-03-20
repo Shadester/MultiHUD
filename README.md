@@ -6,8 +6,12 @@ A macOS app that overlays live data onto a virtual camera feed — inspired by [
 
 - Creates a **virtual camera** (via CoreMediaIO system extension) selectable in Zoom, Meet, Teams, etc.
 - Composites your real webcam feed with live data overlays in real time
-- **Weather overlay** — current temperature and conditions via WeatherKit, always visible even when a video app applies its own background replacement
-- **Virtual background** — pick any image (JPEG, PNG, HEIC, …); the extension segments you from the background using Vision and composites you over it each frame
+- **Widget overlays** — compositable pills rendered on the stream, each independently positionable:
+  - **Weather** — current temperature and conditions via WeatherKit; survives video-app background replacement
+  - **Clock** — live wall clock with timezone abbreviation
+  - **Meeting timer** — countup stopwatch, start/reset from the host app
+  - **Countdown** — counts down to a target clock time you set; stays at 0:00 when reached
+- **Virtual background** — pick any image (JPEG, PNG, HEIC, …); the extension segments you using Vision and composites you over it each frame
 - **Camera source selection** — choose which physical camera to use as the source when multiple cameras are available
 - **Auto-launch** — the host app starts automatically the moment a video app activates the virtual camera
 
@@ -43,9 +47,31 @@ The host app fetches weather via WeatherKit and writes it to a shared app group 
 
 | File | Written by | Read by | Purpose |
 |---|---|---|---|
-| `weather.txt` | Host app | Extension | Current temperature + weather symbol |
-| `camera-id.txt` | Host app | Extension | `uniqueID` of the preferred camera source |
+| `weather.txt` | Host app | Extension | Current temperature + weather symbol (`tempC\|tempF\|symbolName`) |
 | `background.jpg` | Host app | Extension | Virtual background image |
+| `settings.json` | Host app | Extension | All other configuration (see below) |
+
+#### `settings.json` schema
+
+```json
+{
+  "cameraId":       "",
+  "blurBackground": false,
+  "segQuality":     "fast",
+  "resolution":     "720p",
+  "opacity":        1.0,
+  "widgets": [
+    { "type": "weather",   "position": "bottomLeft",  "enabled": true  },
+    { "type": "clock",     "position": "bottomLeft",  "enabled": false },
+    { "type": "countup",   "position": "bottomRight", "enabled": false, "startedAt": 0.0 },
+    { "type": "countdown", "position": "bottomLeft",  "enabled": false, "endsAt": 0.0 }
+  ]
+}
+```
+
+- `position`: `bottomLeft` · `bottomCenter` · `bottomRight` · `topLeft` · `topRight`
+- Widgets sharing the same position are grouped into one pill; different positions each get their own pill
+- `startedAt` / `endsAt`: Unix timestamps; `0` means not running — the widget is hidden
 
 ## Tech Stack
 

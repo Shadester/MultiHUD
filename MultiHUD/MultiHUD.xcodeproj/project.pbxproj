@@ -10,22 +10,39 @@
 		0777D556F670702F8CF76198 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63705EBCC895B2BA346C4260 /* SwiftUI.framework */; };
 		34D96025EF5B202E18939934 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */; };
 		370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */; };
+		52232F53E5E23109C6CCD3F5 /* ExtensionSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AC2F05F18288C3B0F51573 /* ExtensionSettingsTests.swift */; };
 		5414F958127917508B7CFFD1 /* WeatherKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 49F6EE44609BEC77CF432D82 /* WeatherKit.framework */; };
 		5791D2DD5B00CDA3CFF08BDD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */; };
 		5F4333E3CC66D78E95AA7E88 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */; };
+		6000A4C08CA1DC09D8F8F0FE /* ExtensionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927246A69DF3F26F64715E3C /* ExtensionManagerTests.swift */; };
 		649080689C17493B18479D00 /* CoreMediaIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */; };
 		66876E6CDD7C02A945BC3408 /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DA46AA7F3707AE81214DE88 /* Vision.framework */; };
 		722170BD66FA82EEC4AA6480 /* ExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */; };
+		74E82147C90FF081782E5557 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3582B5E37AE7FDE183FF328 /* AppSettingsTests.swift */; };
+		93BF3A8C26352A2BC8DEF111 /* DurationFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B981AA7E1943041791B24 /* DurationFormatter.swift */; };
+		9F51C8C1AB78F9229919EADF /* ExtensionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */; };
+		9FFDDC8015DB78D21A25F265 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14107CA2CBAE25B925243E4F /* AppSettings.swift */; };
+		AE86A5ED575A3D6561CF0D82 /* DurationFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D31CD7CFA18CE988754142FA /* DurationFormatterTests.swift */; };
 		B098453811690FEC5EF1D820 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 904149553F57F812D8E56818 /* WeatherService.swift */; };
 		B3789F335062364FE15A31D0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2729412BA9AF5422EC61BCD8 /* Assets.xcassets */; };
 		BB613EDF7C80FE0EC8D96292 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2C14C1FF291F0D2F9057931 /* WeatherService.swift */; };
 		BFA1F87733987567ED9E1671 /* CameraExtension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D0E15783C55EA864B41B12B8 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBA4FE82F5AE4519947E7B91 /* AVFoundation.framework */; };
+		D230D57B648495AF4CA4A7F8 /* DurationFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B981AA7E1943041791B24 /* DurationFormatter.swift */; };
 		D6DBD41FCB65FCB6E5FDC3D4 /* CameraExtensionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8376687F7C583086140A568 /* CameraExtensionProvider.swift */; };
+		DC3B7C54409B4E04DCDA790F /* ExtensionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */; };
 		DDC16C06954111A7CAFA4D50 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A74F687AB3F3622ED3327F /* main.swift */; };
+		DEE3E555E79341BE594B072C /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DA46AA7F3707AE81214DE88 /* Vision.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		2040EC22A44075D83CFF20ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E0D5E38D3579ACDA4661EB22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8C2B9DA524AD8699B3AC632F;
+			remoteInfo = MultiHUD;
+		};
 		443519E67D05F0D7A96F65C0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = E0D5E38D3579ACDA4661EB22 /* Project object */;
@@ -51,6 +68,7 @@
 
 /* Begin PBXFileReference section */
 		03A74F687AB3F3622ED3327F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		14107CA2CBAE25B925243E4F /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		20B054380A88B2514460C1FC /* MultiHUD.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MultiHUD.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2729412BA9AF5422EC61BCD8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiHUDApp.swift; sourceTree = "<group>"; };
@@ -59,12 +77,19 @@
 		5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
 		63705EBCC895B2BA346C4260 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		85AC2F05F18288C3B0F51573 /* ExtensionSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionSettingsTests.swift; sourceTree = "<group>"; };
+		8C0B981AA7E1943041791B24 /* DurationFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationFormatter.swift; sourceTree = "<group>"; };
 		904149553F57F812D8E56818 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		927246A69DF3F26F64715E3C /* ExtensionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionManagerTests.swift; sourceTree = "<group>"; };
 		9DA46AA7F3707AE81214DE88 /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
+		9F2AFCAB2619FDF3EFFA620E /* MultiHUDTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MultiHUDTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMediaIO.framework; path = System/Library/Frameworks/CoreMediaIO.framework; sourceTree = SDKROOT; };
+		B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionSettings.swift; sourceTree = "<group>"; };
+		C3582B5E37AE7FDE183FF328 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		D2C14C1FF291F0D2F9057931 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		D31CD7CFA18CE988754142FA /* DurationFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationFormatterTests.swift; sourceTree = "<group>"; };
 		DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionManager.swift; sourceTree = "<group>"; };
 		DBA4FE82F5AE4519947E7B91 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		E8376687F7C583086140A568 /* CameraExtensionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraExtensionProvider.swift; sourceTree = "<group>"; };
@@ -91,12 +116,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E7F3F46B8FD41945032405AE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DEE3E555E79341BE594B072C /* Vision.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		505CF7789C17956AA6C9F7BA /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				BF014990003D7DA6B4FC4DEA /* MultiHUDTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 		57D15A7F5B6D549B58A81150 /* MultiHUD */ = {
 			isa = PBXGroup;
 			children = (
+				14107CA2CBAE25B925243E4F /* AppSettings.swift */,
 				2729412BA9AF5422EC61BCD8 /* Assets.xcassets */,
 				A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */,
 				DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */,
@@ -126,14 +168,28 @@
 			children = (
 				5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */,
 				20B054380A88B2514460C1FC /* MultiHUD.app */,
+				9F2AFCAB2619FDF3EFFA620E /* MultiHUDTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BF014990003D7DA6B4FC4DEA /* MultiHUDTests */ = {
+			isa = PBXGroup;
+			children = (
+				C3582B5E37AE7FDE183FF328 /* AppSettingsTests.swift */,
+				D31CD7CFA18CE988754142FA /* DurationFormatterTests.swift */,
+				927246A69DF3F26F64715E3C /* ExtensionManagerTests.swift */,
+				85AC2F05F18288C3B0F51573 /* ExtensionSettingsTests.swift */,
+			);
+			path = MultiHUDTests;
 			sourceTree = "<group>";
 		};
 		C79B6D8117D371FAF0C57765 /* CameraExtension */ = {
 			isa = PBXGroup;
 			children = (
 				E8376687F7C583086140A568 /* CameraExtensionProvider.swift */,
+				8C0B981AA7E1943041791B24 /* DurationFormatter.swift */,
+				B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */,
 				03A74F687AB3F3622ED3327F /* main.swift */,
 				D2C14C1FF291F0D2F9057931 /* WeatherService.swift */,
 			);
@@ -145,6 +201,7 @@
 			children = (
 				C79B6D8117D371FAF0C57765 /* CameraExtension */,
 				57D15A7F5B6D549B58A81150 /* MultiHUD */,
+				505CF7789C17956AA6C9F7BA /* Tests */,
 				791433ADF6FF875D07CC08E1 /* Frameworks */,
 				AF163A581B0B43366F92B8A9 /* Products */,
 			);
@@ -153,6 +210,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		481FD0DDFABC3355EC6FC1CF /* MultiHUDTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F5C35FCE80ED785651BAC189 /* Build configuration list for PBXNativeTarget "MultiHUDTests" */;
+			buildPhases = (
+				41054764A5AECED5459F7896 /* Sources */,
+				E7F3F46B8FD41945032405AE /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2026650C534741585C75F367 /* PBXTargetDependency */,
+			);
+			name = MultiHUDTests;
+			productName = MultiHUDTests;
+			productReference = 9F2AFCAB2619FDF3EFFA620E /* MultiHUDTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		4A97C9675EF2CCE4389AAA90 /* CameraExtension */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AE8031DEB976FD4D85800347 /* Build configuration list for PBXNativeTarget "CameraExtension" */;
@@ -197,6 +271,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					481FD0DDFABC3355EC6FC1CF = {
+						DevelopmentTeam = HGS3GTCF73;
+						ProvisioningStyle = Manual;
+					};
 					4A97C9675EF2CCE4389AAA90 = {
 						DevelopmentTeam = HGS3GTCF73;
 						ProvisioningStyle = Manual;
@@ -221,6 +299,7 @@
 			targets = (
 				4A97C9675EF2CCE4389AAA90 /* CameraExtension */,
 				8C2B9DA524AD8699B3AC632F /* MultiHUD */,
+				481FD0DDFABC3355EC6FC1CF /* MultiHUDTests */,
 			);
 		};
 /* End PBXProject section */
@@ -238,10 +317,24 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		41054764A5AECED5459F7896 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				74E82147C90FF081782E5557 /* AppSettingsTests.swift in Sources */,
+				93BF3A8C26352A2BC8DEF111 /* DurationFormatter.swift in Sources */,
+				AE86A5ED575A3D6561CF0D82 /* DurationFormatterTests.swift in Sources */,
+				6000A4C08CA1DC09D8F8F0FE /* ExtensionManagerTests.swift in Sources */,
+				DC3B7C54409B4E04DCDA790F /* ExtensionSettings.swift in Sources */,
+				52232F53E5E23109C6CCD3F5 /* ExtensionSettingsTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4305FB9E0CAEF2820810D404 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9FFDDC8015DB78D21A25F265 /* AppSettings.swift in Sources */,
 				34D96025EF5B202E18939934 /* ContentView.swift in Sources */,
 				722170BD66FA82EEC4AA6480 /* ExtensionManager.swift in Sources */,
 				370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */,
@@ -254,6 +347,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6DBD41FCB65FCB6E5FDC3D4 /* CameraExtensionProvider.swift in Sources */,
+				D230D57B648495AF4CA4A7F8 /* DurationFormatter.swift in Sources */,
+				9F51C8C1AB78F9229919EADF /* ExtensionSettings.swift in Sources */,
 				BB613EDF7C80FE0EC8D96292 /* WeatherService.swift in Sources */,
 				DDC16C06954111A7CAFA4D50 /* main.swift in Sources */,
 			);
@@ -262,6 +357,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		2026650C534741585C75F367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8C2B9DA524AD8699B3AC632F /* MultiHUD */;
+			targetProxy = 2040EC22A44075D83CFF20ED /* PBXContainerItemProxy */;
+		};
 		442D86BBD165486F908218A4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 4A97C9675EF2CCE4389AAA90 /* CameraExtension */;
@@ -284,6 +384,23 @@
 				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD;
 				PROVISIONING_PROFILE_SPECIFIER = "eb899144-0dde-4b24-870b-146893b0d344";
 				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		17CF80F9E107E6B5D33E8E49 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD.Tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MultiHUD.app/Contents/MacOS/MultiHUD";
 			};
 			name = Release;
 		};
@@ -436,6 +553,23 @@
 			};
 			name = Release;
 		};
+		3CEB0DEFF5AE8FC4AF7A3F37 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD.Tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MultiHUD.app/Contents/MacOS/MultiHUD";
+			};
+			name = Debug;
+		};
 		67EEB580C0B49493A59DCB49 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -460,6 +594,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MultiHUD/MultiHUD.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = MultiHUD/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -497,6 +632,15 @@
 			buildConfigurations = (
 				1A9A413061BA810429566B39 /* Debug */,
 				36085F2374E929FEDBE83F58 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F5C35FCE80ED785651BAC189 /* Build configuration list for PBXNativeTarget "MultiHUDTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3CEB0DEFF5AE8FC4AF7A3F37 /* Debug */,
+				17CF80F9E107E6B5D33E8E49 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

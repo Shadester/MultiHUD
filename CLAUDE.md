@@ -6,7 +6,11 @@ macOS app that overlays live data (starting with weather/temperature) onto a vir
 
 - Creates a **virtual camera** (via CoreMediaIO system extension) selectable in Zoom, Meet, Teams, etc.
 - Composites the real webcam feed with data overlays in real time
-- Weather/temperature overlay via WeatherKit (pill always rendered on top, survives video-app background replacement)
+- **Widget overlay system** — weather, clock, meeting timer, and countdown widgets; each independently enabled and positionable at 5 corners/center; widgets sharing a position are grouped into one pill
+- Weather/temperature overlay via WeatherKit (survives video-app background replacement)
+- Clock widget — live `HH:mm TZ` rendered each frame
+- Meeting countup timer — start/reset from host app; elapsed time computed from `startedAt` Unix timestamp
+- Countdown timer — target clock time set via `DatePicker`; remaining time computed from `endsAt` Unix timestamp
 - Virtual background via Vision person segmentation (`VNGeneratePersonSegmentationRequest`)
 - Camera source selection when multiple cameras are present
 - Auto-launches host app when a video app activates the virtual camera (`multihud://wake` URL scheme)
@@ -60,7 +64,9 @@ open /Applications/MultiHUD.app
 - **System Extension** capability must be enabled in portal for `net.fakeapps.MultiHUD`
 - No `systemextensionsctl developer on` needed — use Developer ID Application signing
 - Extension does NOT make network calls; host app fetches weather and writes to shared app group container
-- Shared container files: `weather.txt` (weather data), `camera-id.txt` (selected camera `uniqueID`), `background.jpg` (virtual background image)
+- Shared container files: `weather.txt` (weather data, written frequently), `background.jpg` (binary), `settings.json` (all other config)
+- `settings.json` schema: `{ "cameraId": "", "blurBackground": false, "segQuality": "fast", "resolution": "720p", "opacity": 1.0, "widgets": [{ "type": "weather|clock|countup|countdown", "position": "bottomLeft|...", "enabled": bool, "startedAt": 0.0, "endsAt": 0.0 }] }`
+- All settings managed by `AppSettings` (@Observable, @MainActor) — single instance shared via SwiftUI environment across both ContentView instances
 - Extension reads `background.jpg` modification date each frame to detect changes without polling
 - URL scheme `multihud://` registered in host app; extension opens `multihud://wake` via `NSWorkspace` on `startStreaming()` to auto-launch the host app
 - Adding files: drop in the right folder, run `xcodegen generate`, rebuild

@@ -10,12 +10,17 @@ import os.log
 @Observable
 class ExtensionManager: NSObject {
 
-    // Must match the CameraExtension target's bundle identifier exactly
-    private let extensionBundleID = Bundle.main.bundleIdentifier.map { $0 + ".CameraExtension" } ?? ""
+    private let extensionBundleID: String = {
+        guard let id = Bundle.main.bundleIdentifier else {
+            fatalError("Bundle.main.bundleIdentifier is nil — check the app's Info.plist")
+        }
+        return id + ".CameraExtension"
+    }()
+
     private var isInstalling = false
 
     enum State {
-        case unknown, installing, uninstalling, active, failed(String)
+        case unknown, installing, uninstalling, active, rebootRequired, approvalNeeded, failed(String)
 
         var label: String {
             switch self {
@@ -23,6 +28,8 @@ class ExtensionManager: NSObject {
             case .installing:          return "Installing…"
             case .uninstalling:        return "Uninstalling…"
             case .active:              return "Active"
+            case .rebootRequired:      return "Reboot required to complete"
+            case .approvalNeeded:      return "Approval needed in System Settings"
             case .failed(let msg):     return "Error: \(msg)"
             }
         }
@@ -33,7 +40,12 @@ class ExtensionManager: NSObject {
         }
 
         var needsApproval: Bool {
-            if case .failed(let msg) = self { return msg.contains("Approval needed") }
+            if case .approvalNeeded = self { return true }
+            return false
+        }
+
+        var needsReboot: Bool {
+            if case .rebootRequired = self { return true }
             return false
         }
 
@@ -47,8 +59,9 @@ class ExtensionManager: NSObject {
 
     var state: State = .unknown
 
-    /// Call on app launch to activate (or re-activate after an update) automatically.
+    /// Activates (or re-activates after an update) the extension. Safe to call multiple times.
     func activate() {
+        guard !state.isBusy else { return }
         install()
     }
 
@@ -87,7 +100,7 @@ extension ExtensionManager: OSSystemExtensionRequestDelegate {
         case .completed:
             state = isInstalling ? .active : .unknown
         case .willCompleteAfterReboot:
-            state = .failed("Requires reboot to complete")
+            state = .rebootRequired
         @unknown default:
             state = isInstalling ? .active : .unknown
         }
@@ -104,7 +117,7 @@ extension ExtensionManager: OSSystemExtensionRequestDelegate {
     }
 
     func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
-        state = .failed("Approval needed — open System Settings › Privacy & Security")
+        state = .approvalNeeded
     }
 
     func request(

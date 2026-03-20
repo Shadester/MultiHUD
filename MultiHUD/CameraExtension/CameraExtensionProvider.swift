@@ -16,13 +16,12 @@ import os
 
 let kFrameRate: Int = 30
 
-private let sharedCameraIDFileURL: URL? =
-    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "HGS3GTCF73.net.fakeapps.MultiHUD")?
-        .appendingPathComponent("camera-id.txt")
+private let kAppGroup = "HGS3GTCF73.net.fakeapps.MultiHUD"
 
-private let sharedBackgroundFileURL: URL? =
-    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "HGS3GTCF73.net.fakeapps.MultiHUD")?
-        .appendingPathComponent("background.jpg")
+private func sharedContainerURL(_ name: String) -> URL? {
+    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: kAppGroup)?
+        .appendingPathComponent(name)
+}
 
 private let logger = Logger(subsystem: "net.fakeapps.MultiHUD.CameraExtension", category: "camera")
 
@@ -30,8 +29,16 @@ private let logger = Logger(subsystem: "net.fakeapps.MultiHUD.CameraExtension", 
 private let kDeviceUUID = UUID(uuidString: "17C9D6E2-4CA4-4CF1-A52C-C147F20C0086")!
 private let kStreamUUID = UUID(uuidString: "40CF8ACC-893B-4EBD-AA86-1B4D26EEAF62")!
 
-private let kWidth  = 1280
-private let kHeight = 720
+private let kDefaultWidth  = 1280
+private let kDefaultHeight = 720
+
+private enum WidgetDisplayItem {
+    case weather(tempC: String, tempF: String, symbol: String)
+    case weatherRaw(String)
+    case clock(time: String, tz: String)
+    case countup(String)
+    case countdown(String)
+}
 
 // MARK: - Device Source
 
@@ -41,15 +48,21 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     private var _streamSource: CameraExtensionStreamSource!
     private var _videoDescription: CMFormatDescription!
 
-    private let sessionQueue    = DispatchQueue(label: "com.multihud.session")
-    private let videoOutputQueue = DispatchQueue(label: "com.multihud.videoOutput")
-    private let streamingQueue  = DispatchQueue(label: "com.multihud.streaming")
+    private let sessionQueue      = DispatchQueue(label: "com.multihud.session")
+    private let videoOutputQueue  = DispatchQueue(label: "com.multihud.videoOutput")
+    private let streamingQueue    = DispatchQueue(label: "com.multihud.streaming")
+    // Serial queue — only one segmentation runs at a time
+    private let segmentationQueue = DispatchQueue(label: "com.multihud.segmentation", qos: .userInitiated)
 
     private var captureSession: AVCaptureSession?
     private var streamTimer: DispatchSourceTimer?
 
     private let frameLock = NSLock()
     private var latestPixelBuffer: CVPixelBuffer?
+
+    // Async segmentation result — written from segmentationQueue, read from streamingQueue
+    private let maskLock = NSLock()
+    private var latestMaskCI: CIImage?
 
     private let ciContext = CIContext()
 
@@ -60,7 +73,49 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     private var backgroundCI: CIImage?
     private var backgroundFileMtime: Date?
 
+    // Segmentation request — reused, only accessed from segmentationQueue
+    private let segmentationRequest: VNGeneratePersonSegmentationRequest = {
+        let req = VNGeneratePersonSegmentationRequest()
+        req.qualityLevel = .fast
+        req.outputPixelFormat = kCVPixelFormatType_OneComponent8
+        return req
+    }()
+
+    // Frame counters
+    private var segFrameCounter = 0          // throttle segmentation to every 3rd frame
+    private var settingsFrameCounter = 0     // refresh settings every ~3 seconds
+
+    private let settingsRefreshInterval = 90 // frames (~3 s at 30 fps)
+    private var currentSettings = ExtensionSettings()
+
+    // Clock formatter (re-used to avoid allocation each frame)
+    private let clockFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    // Output resolution — read once at init from shared container
+    private let outputWidth: Int
+    private let outputHeight: Int
+
+    // Pixel buffer pool — avoids per-frame allocation
+    private var outputBufferPool: CVPixelBufferPool?
+
+    private static func readResolution() -> (width: Int, height: Int) {
+        guard let url  = sharedContainerURL("settings.json"),
+              let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              json["resolution"] as? String == "1080p" else {
+            return (kDefaultWidth, kDefaultHeight)
+        }
+        return (1920, 1080)
+    }
+
     init(localizedName: String) {
+        let res = Self.readResolution()
+        outputWidth  = res.width
+        outputHeight = res.height
         super.init()
         self.device = CMIOExtensionDevice(
             localizedName: localizedName,
@@ -69,7 +124,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             source: self
         )
 
-        let dims = CMVideoDimensions(width: Int32(kWidth), height: Int32(kHeight))
+        let dims = CMVideoDimensions(width: Int32(outputWidth), height: Int32(outputHeight))
         CMVideoFormatDescriptionCreate(
             allocator: kCFAllocatorDefault,
             codecType: kCVPixelFormatType_32BGRA,
@@ -97,7 +152,6 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         } catch {
             fatalError("Failed to add stream: \(error.localizedDescription)")
         }
-
     }
 
     var availableProperties: Set<CMIOExtensionProperty> {
@@ -117,6 +171,8 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     func startStreaming() {
         guard streamTimer == nil else { return }
+
+        currentSettings = ExtensionSettings.load()
 
         let timer = DispatchSource.makeTimerSource(queue: streamingQueue)
         timer.schedule(deadline: .now(), repeating: .milliseconds(33))
@@ -168,7 +224,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
         let session = AVCaptureSession()
         session.beginConfiguration()
-        session.sessionPreset = .hd1280x720
+        session.sessionPreset = outputHeight >= 1080 ? .hd1920x1080 : .hd1280x720
 
         guard session.canAddInput(input) else {
             logger.error("Cannot add input to session")
@@ -215,11 +271,11 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             logger.info("  device=\(d.localizedName, privacy: .public) type=\(d.deviceType.rawValue, privacy: .public)")
         }
 
-        if let url = sharedCameraIDFileURL,
-           let savedID = try? String(contentsOf: url, encoding: .utf8)
-                .trimmingCharacters(in: .whitespacesAndNewlines),
-           !savedID.isEmpty,
-           let preferred = discoverySession.devices.first(where: { $0.uniqueID == savedID }) {
+        if let url  = sharedContainerURL("settings.json"),
+           let data = try? Data(contentsOf: url),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let id   = json["cameraId"] as? String, !id.isEmpty,
+           let preferred = discoverySession.devices.first(where: { $0.uniqueID == id }) {
             logger.info("Using preferred camera: \(preferred.localizedName, privacy: .public)")
             return preferred
         }
@@ -247,9 +303,27 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: - Frame emission
 
     private func emitFrame() {
+        // Refresh settings periodically (cheap file reads, ~3 s interval)
+        settingsFrameCounter += 1
+        if settingsFrameCounter >= settingsRefreshInterval {
+            settingsFrameCounter = 0
+            currentSettings = ExtensionSettings.load()
+        }
+
         frameLock.lock()
         let inputBuffer = latestPixelBuffer
         frameLock.unlock()
+
+        // Kick off async segmentation every 3rd frame (~10 fps) on a dedicated queue.
+        // The serial queue ensures at most one segmentation is in-flight at a time.
+        segFrameCounter += 1
+        if segFrameCounter % 3 == 0, let buf = inputBuffer {
+            let quality = currentSettings.segQuality
+            segmentationQueue.async { [weak self] in
+                self?.segmentationRequest.qualityLevel = quality
+                self?.runSegmentation(on: buf)
+            }
+        }
 
         guard let outBuffer = makeOutputPixelBuffer() else { return }
         render(input: inputBuffer, into: outBuffer)
@@ -279,37 +353,69 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         )
     }
 
+    // Runs on segmentationQueue — processes Vision and updates latestMaskCI.
+    private func runSegmentation(on pixelBuffer: CVPixelBuffer) {
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+        guard (try? handler.perform([segmentationRequest])) != nil,
+              let maskBuffer = segmentationRequest.results?.first?.pixelBuffer else { return }
+
+        let extent = CGRect(x: 0, y: 0, width: outputWidth, height: outputHeight)
+        var maskCI = CIImage(cvPixelBuffer: maskBuffer)
+        let sx = extent.width  / maskCI.extent.width
+        let sy = extent.height / maskCI.extent.height
+        maskCI = maskCI.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
+        maskCI = maskCI.applyingGaussianBlur(sigma: 3).cropped(to: extent)
+
+        // Temporal smoothing: blend 40% previous + 60% current mask to suppress edge flicker.
+        maskLock.lock()
+        let prev = latestMaskCI
+        if let prev,
+           let dissolve = CIFilter(name: "CIDissolveTransition") {
+            dissolve.setValue(prev,   forKey: kCIInputImageKey)
+            dissolve.setValue(maskCI, forKey: kCIInputTargetImageKey)
+            dissolve.setValue(0.6,    forKey: kCIInputTimeKey)
+            maskCI = dissolve.outputImage?.cropped(to: extent) ?? maskCI
+        }
+        latestMaskCI = maskCI
+        maskLock.unlock()
+    }
+
     private func makeOutputPixelBuffer() -> CVPixelBuffer? {
-        let attrs: [CFString: Any] = [
-            kCVPixelBufferWidthKey: kWidth,
-            kCVPixelBufferHeightKey: kHeight,
-            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
-            kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
-        ]
+        if outputBufferPool == nil {
+            let attrs: [CFString: Any] = [
+                kCVPixelBufferWidthKey: outputWidth,
+                kCVPixelBufferHeightKey: outputHeight,
+                kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
+                kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
+            ]
+            var pool: CVPixelBufferPool?
+            CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, attrs as CFDictionary, &pool)
+            outputBufferPool = pool
+        }
+        guard let pool = outputBufferPool else { return nil }
         var pb: CVPixelBuffer?
-        guard CVPixelBufferCreate(kCFAllocatorDefault, kWidth, kHeight,
-                                  kCVPixelFormatType_32BGRA,
-                                  attrs as CFDictionary, &pb) == kCVReturnSuccess else { return nil }
+        guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pb) == kCVReturnSuccess else { return nil }
         return pb
     }
 
     // MARK: - Rendering
 
     private func render(input: CVPixelBuffer?, into output: CVPixelBuffer) {
-        let extent = CGRect(x: 0, y: 0, width: kWidth, height: kHeight)
+        let extent = CGRect(x: 0, y: 0, width: outputWidth, height: outputHeight)
+        let settings = currentSettings
 
         loadBackgroundIfNeeded()
 
         // Scale webcam frame to output size, or use a dark fallback.
-        let webcamLayer: CIImage
+        var webcamLayer: CIImage
         if let input {
             let img = CIImage(cvPixelBuffer: input)
-            let sx = CGFloat(kWidth)  / img.extent.width
-            let sy = CGFloat(kHeight) / img.extent.height
+            let sx = CGFloat(outputWidth)  / img.extent.width
+            let sy = CGFloat(outputHeight) / img.extent.height
             let scale = max(sx, sy)
             let scaled = img.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-            let ox = (CGFloat(kWidth)  - scaled.extent.width)  / 2
-            let oy = (CGFloat(kHeight) - scaled.extent.height) / 2
+            let ox = (CGFloat(outputWidth)  - scaled.extent.width)  / 2
+            let oy = (CGFloat(outputHeight) - scaled.extent.height) / 2
             webcamLayer = scaled
                 .transformed(by: CGAffineTransform(translationX: ox, y: oy))
                 .cropped(to: extent)
@@ -318,30 +424,72 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
                 .cropped(to: extent)
         }
 
-        // Apply virtual background via person segmentation (if configured).
+
+        // Grab the latest async segmentation mask (may be nil for first few frames).
+        maskLock.lock()
+        let mask = latestMaskCI
+        maskLock.unlock()
+
+        // Apply virtual background or blur via person segmentation mask.
         let baseLayer: CIImage
-        if let customBg = backgroundCI, let input {
-            baseLayer = applyVirtualBackground(
-                webcam: webcamLayer, webcamBuffer: input, background: customBg, extent: extent
-            )
+        if let customBg = backgroundCI {
+            // Custom background image: only apply person mask when camera is active.
+            // Without input, show the background directly to avoid stale mask artifacts.
+            let positionedBg = positioned(customBg, in: extent)
+            if input != nil, let mask {
+                baseLayer = compositeWithMask(person: webcamLayer, background: positionedBg, mask: mask)
+            } else {
+                baseLayer = positionedBg
+            }
+        } else if settings.blurBackground, input != nil, let mask {
+            // Gaussian blur of the webcam layer as background.
+            let blurred = webcamLayer.applyingGaussianBlur(sigma: 15).cropped(to: extent)
+            baseLayer = compositeWithMask(person: webcamLayer, background: blurred, mask: mask)
         } else {
             baseLayer = webcamLayer
         }
 
-        // Composite weather pill on top — always visible, even if the video app
-        // does its own background replacement on our output stream.
-        let composite: CIImage
-        if let overlayCI = makeOverlayCIImage(canvasSize: CGSize(width: kWidth, height: kHeight)) {
-            composite = overlayCI.composited(over: baseLayer)
-        } else {
-            composite = baseLayer
+        // Composite overlay pills on top (one pill per position group).
+        // Compute Date once so the clock widget and timer math share the same timestamp.
+        let date = Date()
+        let now  = date.timeIntervalSince1970
+        let enabledWidgets = settings.widgets.filter { $0.enabled }
+        let groups = Dictionary(grouping: enabledWidgets, by: \.position)
+        var composite = baseLayer
+        for (position, widgets) in groups {
+            let items = widgets.compactMap { widgetDisplayItem($0, now: now, date: date) }
+            guard !items.isEmpty else { continue }
+            if let pillCI = makePillCIImage(items, position: position, opacity: settings.opacity,
+                                            canvasSize: CGSize(width: outputWidth, height: outputHeight)) {
+                composite = pillCI.composited(over: composite)
+            }
         }
 
         ciContext.render(composite, to: output)
     }
 
+    private func positioned(_ image: CIImage, in extent: CGRect) -> CIImage {
+        let sx = extent.width  / image.extent.width
+        let sy = extent.height / image.extent.height
+        let s  = max(sx, sy)
+        let scaled = image.transformed(by: CGAffineTransform(scaleX: s, y: s))
+        let ox = (extent.width  - scaled.extent.width)  / 2
+        let oy = (extent.height - scaled.extent.height) / 2
+        return scaled
+            .transformed(by: CGAffineTransform(translationX: ox, y: oy))
+            .cropped(to: extent)
+    }
+
+    private func compositeWithMask(person: CIImage, background: CIImage, mask: CIImage) -> CIImage {
+        guard let blend = CIFilter(name: "CIBlendWithMask") else { return person }
+        blend.setValue(person,     forKey: kCIInputImageKey)
+        blend.setValue(background, forKey: kCIInputBackgroundImageKey)
+        blend.setValue(mask,       forKey: kCIInputMaskImageKey)
+        return blend.outputImage ?? person
+    }
+
     private func loadBackgroundIfNeeded() {
-        guard let url = sharedBackgroundFileURL else {
+        guard let url = sharedContainerURL("background.jpg") else {
             backgroundCI = nil
             return
         }
@@ -352,53 +500,36 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         backgroundCI = mtime != nil ? CIImage(contentsOf: url) : nil
     }
 
-    private func applyVirtualBackground(
-        webcam: CIImage,
-        webcamBuffer: CVPixelBuffer,
-        background: CIImage,
-        extent: CGRect
-    ) -> CIImage {
-        let request = VNGeneratePersonSegmentationRequest()
-        request.qualityLevel = .balanced
-        request.outputPixelFormat = kCVPixelFormatType_OneComponent8
-
-        let handler = VNImageRequestHandler(cvPixelBuffer: webcamBuffer, options: [:])
-        guard (try? handler.perform([request])) != nil,
-              let maskBuffer = request.results?.first?.pixelBuffer else { return webcam }
-
-        // Scale mask to match output frame.
-        var maskCI = CIImage(cvPixelBuffer: maskBuffer)
-        let maskScaleX = extent.width  / maskCI.extent.width
-        let maskScaleY = extent.height / maskCI.extent.height
-        maskCI = maskCI.transformed(by: CGAffineTransform(scaleX: maskScaleX, y: maskScaleY))
-
-        // Scale and center-crop custom background to fill the output frame.
-        let bgScaleX = extent.width  / background.extent.width
-        let bgScaleY = extent.height / background.extent.height
-        let bgScale  = max(bgScaleX, bgScaleY)
-        let scaledBg = background.transformed(by: CGAffineTransform(scaleX: bgScale, y: bgScale))
-        let ox = (extent.width  - scaledBg.extent.width)  / 2
-        let oy = (extent.height - scaledBg.extent.height) / 2
-        let positionedBg = scaledBg
-            .transformed(by: CGAffineTransform(translationX: ox, y: oy))
-            .cropped(to: extent)
-
-        // CIBlendWithMask: white mask → inputImage (webcam/person), black → backgroundImage (custom bg).
-        guard let blend = CIFilter(name: "CIBlendWithMask") else { return webcam }
-        blend.setValue(webcam,       forKey: kCIInputImageKey)
-        blend.setValue(positionedBg, forKey: kCIInputBackgroundImageKey)
-        blend.setValue(maskCI,       forKey: kCIInputMaskImageKey)
-        return blend.outputImage ?? webcam
+    private func widgetDisplayItem(_ w: WidgetConfig, now: Double, date: Date) -> WidgetDisplayItem? {
+        switch w.type {
+        case .weather:
+            let parts = overlayText.split(separator: "|", maxSplits: 2)
+            if parts.count == 3 {
+                return .weather(tempC: String(parts[0]), tempF: String(parts[1]), symbol: String(parts[2]))
+            }
+            return .weatherRaw(overlayText)
+        case .clock:
+            let time = clockFormatter.string(from: date)
+            let tz = TimeZone.current.abbreviation() ?? ""
+            return .clock(time: time, tz: tz)
+        case .countup:
+            guard w.startedAt > 0 else { return nil }
+            return .countup(formatDuration(now - w.startedAt))
+        case .countdown:
+            guard w.endsAt > 0 else { return nil }
+            return .countdown(formatDuration(max(0, w.endsAt - now)))
+        }
     }
 
-    /// Renders the text pill as a SwiftUI view via ImageRenderer, returns a CIImage
-    /// positioned at the bottom-left of the canvas (in CIImage's y-up coordinate space).
-    private func makeOverlayCIImage(canvasSize: CGSize) -> CIImage? {
-        let text = overlayText
-
+    private func makePillCIImage(
+        _ items: [WidgetDisplayItem],
+        position: OverlayPosition,
+        opacity: Double,
+        canvasSize: CGSize
+    ) -> CIImage? {
         let renderOverlay = {
             MainActor.assumeIsolated {
-                let view = OverlayPillView(text: text)
+                let view = OverlayPillView(items: items, opacity: opacity)
                 let renderer = ImageRenderer(content: view)
                 renderer.scale = 2
                 return renderer.cgImage
@@ -415,42 +546,81 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         guard let cgImage else { return nil }
 
         let image = CIImage(cgImage: cgImage)
-        // Place at bottom-left with 28pt inset (CIImage y-up: y=28 is near bottom).
         let inset: CGFloat = 28
-        return image.transformed(by: CGAffineTransform(translationX: inset, y: inset))
+        let iw = image.extent.width
+        let ih = image.extent.height
+
+        let x: CGFloat
+        let y: CGFloat
+        switch position {
+        case .bottomLeft:    x = inset;                               y = inset
+        case .bottomRight:   x = canvasSize.width  - iw - inset;     y = inset
+        case .topLeft:       x = inset;                               y = canvasSize.height - ih - inset
+        case .topRight:      x = canvasSize.width  - iw - inset;     y = canvasSize.height - ih - inset
+        case .bottomCenter:  x = (canvasSize.width - iw) / 2;        y = inset
+        }
+
+        return image.transformed(by: CGAffineTransform(translationX: x, y: y))
     }
 }
 
 // MARK: - Overlay SwiftUI View
 
 private struct OverlayPillView: View {
-    let text: String
-
-    // Parses "tempC|tempF|symbolName" or falls back to showing raw text
-    private var parsed: (tempC: String, tempF: String, symbol: String)? {
-        let parts = text.split(separator: "|", maxSplits: 2)
-        guard parts.count == 3 else { return nil }
-        return (String(parts[0]), String(parts[1]), String(parts[2]))
-    }
+    let items: [WidgetDisplayItem]
+    let opacity: Double
 
     var body: some View {
-        Group {
-            if let p = parsed {
-                HStack(spacing: 6) {
-                    Image(systemName: p.symbol)
-                        .font(.system(size: 16, weight: .medium))
-                    Text("\(p.tempC)°C / \(p.tempF)°F")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                }
-            } else {
-                Text(text)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+        HStack(spacing: 8) {
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                if index > 0 { pillDivider }
+                itemView(for: item)
             }
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(.black.opacity(0.55), in: Capsule())
+        .opacity(opacity)
+    }
+
+    @ViewBuilder
+    private func itemView(for item: WidgetDisplayItem) -> some View {
+        switch item {
+        case .weather(let tempC, let tempF, let symbol):
+            HStack(spacing: 6) {
+                Image(systemName: symbol)
+                    .font(.system(size: 16, weight: .medium))
+                Text("\(tempC)°C / \(tempF)°F")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+            }
+        case .weatherRaw(let text):
+            Text(text)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+        case .clock(let time, let tz):
+            Text("\(time) \(tz)")
+                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+        case .countup(let elapsed):
+            HStack(spacing: 4) {
+                Image(systemName: "stopwatch")
+                    .font(.system(size: 14, weight: .medium))
+                Text(elapsed)
+                    .font(.system(size: 16, weight: .semibold, design: .monospaced))
+            }
+        case .countdown(let remaining):
+            HStack(spacing: 4) {
+                Image(systemName: "hourglass.tophalf.filled")
+                    .font(.system(size: 14, weight: .medium))
+                Text(remaining)
+                    .font(.system(size: 16, weight: .semibold, design: .monospaced))
+            }
+        }
+    }
+
+    private var pillDivider: some View {
+        Rectangle()
+            .fill(.white.opacity(0.4))
+            .frame(width: 1, height: 16)
     }
 }
 

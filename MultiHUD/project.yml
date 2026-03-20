@@ -36,6 +36,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: net.fakeapps.MultiHUD
         CODE_SIGN_ENTITLEMENTS: MultiHUD/MultiHUD.entitlements
         PROVISIONING_PROFILE_SPECIFIER: eb899144-0dde-4b24-870b-146893b0d344
+      configs:
+        Debug:
+          ENABLE_TESTABILITY: YES
     dependencies:
       - target: CameraExtension
         embed: true
@@ -72,4 +75,20 @@ targets:
       - sdk: AVFoundation.framework
       - sdk: CoreMediaIO.framework
       - sdk: SwiftUI.framework
+      - sdk: Vision.framework
+
+  MultiHUDTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/MultiHUDTests
+      - path: CameraExtension/DurationFormatter.swift
+      - path: CameraExtension/ExtensionSettings.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.fakeapps.MultiHUD.Tests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: MultiHUD
+        embed: false
       - sdk: Vision.framework
