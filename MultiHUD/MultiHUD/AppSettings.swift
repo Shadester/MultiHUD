@@ -110,14 +110,11 @@ final class AppSettings {
         let json = toJSON()
         guard let url  = appGroupURL("settings.json"),
               let data = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted) else { return }
-        // Write on a background thread to avoid blocking the main queue.
-        DispatchQueue.global(qos: .utility).async {
-            do {
-                try data.write(to: url, options: .atomic)
-            } catch {
-                os_log(.error, "MultiHUD: failed to save settings.json: %{public}@",
-                       error.localizedDescription)
-            }
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            os_log(.error, "MultiHUD: failed to save settings.json: %{public}@",
+                   error.localizedDescription)
         }
     }
 
