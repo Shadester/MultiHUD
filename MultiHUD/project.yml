@@ -4,13 +4,13 @@ options:
   bundleIdPrefix: net.fakeapps
   createIntermediateGroups: true
   deploymentTarget:
-    macOS: "26.2"
+    macOS: "15.0"
 
 settings:
   base:
     SWIFT_VERSION: "5.0"
     DEVELOPMENT_TEAM: HGS3GTCF73
-    MACOSX_DEPLOYMENT_TARGET: "26.2"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
     CODE_SIGN_IDENTITY: "Developer ID Application"
     CODE_SIGN_STYLE: Manual
     OTHER_CODE_SIGN_FLAGS: "--timestamp"
