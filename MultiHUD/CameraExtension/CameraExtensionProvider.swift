@@ -83,10 +83,9 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     // Frame counters
     private var segFrameCounter = 0          // throttle segmentation to every 3rd frame
-    private var settingsFrameCounter = 0     // refresh settings every ~3 seconds
 
-    private let settingsRefreshInterval = 90 // frames (~3 s at 30 fps)
     private var currentSettings = ExtensionSettings()
+    private var settingsFileMtime: Date?
 
     // Clock formatter (re-used to avoid allocation each frame)
     private let clockFormatter: DateFormatter = {
@@ -303,11 +302,13 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: - Frame emission
 
     private func emitFrame() {
-        // Refresh settings periodically (cheap file reads, ~3 s interval)
-        settingsFrameCounter += 1
-        if settingsFrameCounter >= settingsRefreshInterval {
-            settingsFrameCounter = 0
-            currentSettings = ExtensionSettings.load()
+        // Reload settings when settings.json changes (mtime check, same pattern as background.jpg).
+        if let url = sharedContainerURL("settings.json") {
+            let mtime = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
+            if mtime != settingsFileMtime {
+                settingsFileMtime = mtime
+                currentSettings = ExtensionSettings.load()
+            }
         }
 
         frameLock.lock()
