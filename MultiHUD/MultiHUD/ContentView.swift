@@ -46,12 +46,9 @@ struct ContentView: View {
     @State private var cameras: [AVCaptureDevice] = []
     @State private var hasBackground = false
     @State private var showBackgroundPicker = false
-    @State private var showSettings = false
     @Environment(\.scenePhase) private var scenePhase
-
     @State private var previewSession: AVCaptureSession?
 
-    // Created once at the type level — DateFormatter is expensive to allocate.
     private static let clockPreviewFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
@@ -75,22 +72,45 @@ struct ContentView: View {
     }
 
     var body: some View {
-        @Bindable var settings = settings
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("MultiHUD")
-                    .font(.largeTitle.bold())
+        TabView {
+            cameraTab
+                .tabItem { Label("Camera", systemImage: "camera.fill") }
+            widgetsTab
+                .tabItem { Label("Widgets", systemImage: "square.grid.2x2") }
+            outputTab
+                .tabItem { Label("Output", systemImage: "gearshape") }
+        }
+        .frame(minWidth: 420, minHeight: 460)
+        .task {
+            cameras = loadCameras()
+            hasBackground = sharedURL("background.jpg").map {
+                FileManager.default.fileExists(atPath: $0.path)
+            } ?? false
+            if ext.state.isActive { startPreview() }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+            }
+        }
+        .onChange(of: ext.state.isActive) { _, isActive in
+            if isActive { startPreview() } else { stopPreview() }
+        }
+    }
 
-                // Extension status
+    // MARK: - Camera tab
+
+    private var cameraTab: some View {
+        let s = Bindable(settings)
+        return Form {
+            Section("Extension") {
                 HStack(spacing: 8) {
                     Circle()
                         .fill(ext.state.isActive ? Color.green : Color.secondary)
-                        .frame(width: 10, height: 10)
-                    Text(ext.state.label)
-                        .foregroundStyle(.secondary)
+                        .frame(width: 8, height: 8)
+                    Text(ext.state.label).foregroundStyle(.secondary)
                 }
 
-                // Action buttons
                 if ext.state.isActive {
                     Button("Uninstall Camera Extension", role: .destructive) {
                         ext.uninstall()
@@ -110,18 +130,15 @@ struct ContentView: View {
                         .buttonStyle(.borderedProminent)
                         .disabled(ext.state.isBusy)
                 }
+            }
 
-                // Live preview
-                if ext.state.isActive {
+            if ext.state.isActive {
+                Section("Live Preview") {
                     Group {
                         if let session = previewSession {
                             CapturePreviewView(session: session)
-                                .frame(width: 320, height: 180)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
                         } else {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.black.opacity(0.7))
-                                .frame(width: 320, height: 180)
+                            Color.black.opacity(0.7)
                                 .overlay {
                                     Text("Preview loading…")
                                         .foregroundStyle(.secondary)
@@ -129,57 +146,61 @@ struct ContentView: View {
                                 }
                         }
                     }
+                    .frame(height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                 }
+            }
 
-                Divider()
-
-                // Camera permission
+            Section("Access") {
                 HStack(spacing: 8) {
                     Circle()
                         .fill(cameraStatus == .authorized ? Color.green : Color.orange)
-                        .frame(width: 10, height: 10)
+                        .frame(width: 8, height: 8)
                     switch cameraStatus {
                     case .authorized:
                         Text("Camera access granted").foregroundStyle(.secondary)
                     case .denied, .restricted:
                         Text("Camera access denied").foregroundStyle(.orange)
+                        Spacer()
                         Button("Open Settings") {
                             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera")!)
                         }
                         .buttonStyle(.borderedProminent).controlSize(.small)
                     default:
                         Text("Camera access required").foregroundStyle(.orange)
+                        Spacer()
                         Button("Grant Access") { Task { await requestCameraAccess() } }
                             .buttonStyle(.borderedProminent).controlSize(.small)
                     }
                 }
 
-                // Location permission
                 HStack(spacing: 8) {
                     Circle()
                         .fill(locationGranted ? Color.green : Color.orange)
-                        .frame(width: 10, height: 10)
+                        .frame(width: 8, height: 8)
                     switch locationStatus {
                     case .authorizedAlways, .authorizedWhenInUse:
                         Text("Location access granted").foregroundStyle(.secondary)
                     case .denied, .restricted:
                         Text("Location access denied").foregroundStyle(.orange)
+                        Spacer()
                         Button("Open Settings") {
                             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Location")!)
                         }
                         .buttonStyle(.borderedProminent).controlSize(.small)
                     default:
                         Text("Location access required for weather").foregroundStyle(.orange)
+                        Spacer()
                         Button("Grant Access") { HostWeatherService.shared.requestLocationAccess() }
                             .buttonStyle(.borderedProminent).controlSize(.small)
                     }
                 }
+            }
 
-                Divider()
-
-                // Camera source picker
+            Section("Source") {
                 if cameraStatus == .authorized, !cameras.isEmpty {
-                    Picker("Camera source", selection: $settings.cameraId) {
+                    Picker("Camera", selection: s.cameraId) {
                         Text("Auto").tag("")
                         ForEach(cameras, id: \.uniqueID) { cam in
                             Text(cam.localizedName).tag(cam.uniqueID)
@@ -188,144 +209,116 @@ struct ContentView: View {
                     .onChange(of: settings.cameraId) { _, _ in settings.save() }
                 }
 
-                // Virtual background / blur
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        if hasBackground {
-                            Text("Virtual background set").foregroundStyle(.secondary)
-                            Spacer()
-                            Button("Clear") { clearBackground() }.controlSize(.small)
-                        } else {
-                            Button("Set virtual background…") { showBackgroundPicker = true }
-                        }
+                if hasBackground {
+                    HStack {
+                        Text("Virtual background").foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Clear") { clearBackground() }.controlSize(.small)
                     }
-                    Toggle("Blur background (no image needed)", isOn: $settings.blurBackground)
-                        .onChange(of: settings.blurBackground) { _, _ in settings.save() }
-                        .disabled(hasBackground)
-                        .foregroundStyle(hasBackground ? .tertiary : .primary)
-                }
-                .fileImporter(
-                    isPresented: $showBackgroundPicker,
-                    allowedContentTypes: [.image],
-                    allowsMultipleSelection: false
-                ) { result in
-                    guard case .success(let urls) = result, let url = urls.first else { return }
-                    importBackground(from: url)
+                } else {
+                    Button("Set virtual background…") { showBackgroundPicker = true }
                 }
 
-                Divider()
+                Toggle("Blur background", isOn: s.blurBackground)
+                    .onChange(of: settings.blurBackground) { _, _ in settings.save() }
+                    .disabled(hasBackground)
+            }
+        }
+        .formStyle(.grouped)
+        .fileImporter(
+            isPresented: $showBackgroundPicker,
+            allowedContentTypes: [.image],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            importBackground(from: url)
+        }
+    }
 
-                // Overlay settings
-                DisclosureGroup("Overlay Settings", isExpanded: $showSettings) {
-                    VStack(alignment: .leading, spacing: 16) {
+    // MARK: - Widgets tab
 
-                        Text("Widgets").font(.headline)
+    private var widgetsTab: some View {
+        let s = Bindable(settings)
+        return Form {
+            Section {
+                HStack {
+                    Text("Opacity")
+                    Slider(value: s.opacity, in: 0.1...1.0, step: 0.05)
+                        .onChange(of: settings.opacity) { _, _ in settings.save() }
+                    Text("\(Int(settings.opacity * 100))%")
+                        .monospacedDigit()
+                        .frame(width: 36, alignment: .trailing)
+                }
+            }
 
-                        widgetRow(label: "Weather", enabled: $settings.weatherEnabled,
-                                  position: $settings.weatherPosition, preview: "Shows temperature")
+            Section("Widgets") {
+                widgetRow(label: "Weather", enabled: s.weatherEnabled,
+                          position: s.weatherPosition, preview: "Temperature")
 
-                        widgetRow(label: "Clock", enabled: $settings.clockEnabled,
-                                  position: $settings.clockPosition, preview: clockPreview)
+                widgetRow(label: "Clock", enabled: s.clockEnabled,
+                          position: s.clockPosition, preview: clockPreview)
 
-                        // Meeting countup
-                        VStack(alignment: .leading, spacing: 6) {
-                            widgetRow(label: "Meeting timer", enabled: $settings.countupEnabled,
-                                      position: $settings.countupPosition, preview: nil)
-                            if settings.countupEnabled && settings.countupStartedAt == 0 {
-                                Text("Press Start to show in overlay")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                            HStack(spacing: 8) {
-                                Button(settings.countupStartedAt > 0 ? "Restart" : "Start") {
-                                    settings.startCountup()
-                                }
-                                .buttonStyle(.borderedProminent).controlSize(.small)
-                                .disabled(!settings.countupEnabled)
-                                Button("Reset") { settings.resetCountup() }
-                                    .controlSize(.small)
-                                    .disabled(settings.countupStartedAt == 0)
-                            }
-                        }
-
-                        // Countdown
-                        VStack(alignment: .leading, spacing: 6) {
-                            widgetRow(label: "Countdown", enabled: $settings.countdownEnabled,
-                                      position: $settings.countdownPosition, preview: nil)
-                            if settings.countdownEnabled && settings.countdownEndsAt == 0 {
-                                Text("Press Start to show in overlay")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                            DatePicker("End time", selection: $settings.countdownEndTime,
-                                       displayedComponents: .hourAndMinute)
-                                .onChange(of: settings.countdownEndTime) { _, _ in settings.save() }
-                            HStack(spacing: 8) {
-                                Button(settings.countdownEndsAt > 0 ? "Restart" : "Start") {
-                                    settings.startCountdown()
-                                }
-                                .buttonStyle(.borderedProminent).controlSize(.small)
-                                .disabled(!settings.countdownEnabled)
-                                Button("Reset") { settings.resetCountdown() }
-                                    .controlSize(.small)
-                                    .disabled(settings.countdownEndsAt == 0)
-                            }
-                        }
-
-                        Divider()
-
-                        HStack {
-                            Text("Opacity")
-                            Slider(value: $settings.opacity, in: 0.1...1.0, step: 0.05)
-                                .onChange(of: settings.opacity) { _, _ in settings.save() }
-                            Text("\(Int(settings.opacity * 100))%")
-                                .monospacedDigit()
-                                .frame(width: 40, alignment: .trailing)
-                        }
-
-                        Picker("Output resolution", selection: $settings.resolution) {
-                            Text("720p — 1280×720 (default)").tag("720p")
-                            Text("1080p — 1920×1080").tag("1080p")
-                        }
-                        .onChange(of: settings.resolution) { _, _ in settings.save() }
-                        Text("Resolution takes effect when the next video call starts.")
-                            .font(.caption).foregroundStyle(.secondary)
-
-                        Picker("Segmentation quality", selection: $settings.segQuality) {
-                            Text("Fast (recommended)").tag("fast")
-                            Text("Balanced").tag("balanced")
-                            Text("Accurate").tag("accurate")
-                        }
-                        .onChange(of: settings.segQuality) { _, _ in settings.save() }
-
+                widgetRow(label: "Meeting timer", enabled: s.countupEnabled,
+                          position: s.countupPosition, preview: nil)
+                HStack(spacing: 8) {
+                    Button(settings.countupStartedAt > 0 ? "Restart" : "Start") {
+                        settings.startCountup()
                     }
-                    .padding(.top, 8)
+                    .buttonStyle(.borderedProminent).controlSize(.small)
+                    .disabled(!settings.countupEnabled)
+                    Button("Reset") { settings.resetCountup() }
+                        .controlSize(.small)
+                        .disabled(settings.countupStartedAt == 0)
                 }
 
-                Divider()
+                widgetRow(label: "Countdown", enabled: s.countdownEnabled,
+                          position: s.countdownPosition, preview: nil)
+                DatePicker("End time", selection: s.countdownEndTime,
+                           displayedComponents: .hourAndMinute)
+                    .onChange(of: settings.countdownEndTime) { _, _ in settings.save() }
+                HStack(spacing: 8) {
+                    Button(settings.countdownEndsAt > 0 ? "Restart" : "Start") {
+                        settings.startCountdown()
+                    }
+                    .buttonStyle(.borderedProminent).controlSize(.small)
+                    .disabled(!settings.countdownEnabled)
+                    Button("Reset") { settings.resetCountdown() }
+                        .controlSize(.small)
+                        .disabled(settings.countdownEndsAt == 0)
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
 
+    // MARK: - Output tab
+
+    private var outputTab: some View {
+        let s = Bindable(settings)
+        return Form {
+            Section("Video") {
+                Picker("Resolution", selection: s.resolution) {
+                    Text("720p — 1280×720 (default)").tag("720p")
+                    Text("1080p — 1920×1080").tag("1080p")
+                }
+                .onChange(of: settings.resolution) { _, _ in settings.save() }
+
+                Picker("Segmentation", selection: s.segQuality) {
+                    Text("Fast (recommended)").tag("fast")
+                    Text("Balanced").tag("balanced")
+                    Text("Accurate").tag("accurate")
+                }
+                .onChange(of: settings.segQuality) { _, _ in settings.save() }
+            }
+
+            Section {
                 Text("After installing, select **MultiHUD** as your camera in Zoom, Meet, or any video app.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 320)
-            }
-            .padding(32)
-        }
-        .frame(minWidth: 400, minHeight: 360)
-        .task {
-            cameras = loadCameras()
-            hasBackground = sharedURL("background.jpg").map {
-                FileManager.default.fileExists(atPath: $0.path)
-            } ?? false
-            if ext.state.isActive { startPreview() }
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active {
-                cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .onChange(of: ext.state.isActive) { _, isActive in
-            if isActive { startPreview() } else { stopPreview() }
-        }
+        .formStyle(.grouped)
     }
 
     // MARK: - Widget row
