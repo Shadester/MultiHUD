@@ -72,13 +72,32 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView {
-            cameraTab
-                .tabItem { Label("Camera", systemImage: "camera.fill") }
-            widgetsTab
-                .tabItem { Label("Widgets", systemImage: "square.grid.2x2") }
-            outputTab
-                .tabItem { Label("Output", systemImage: "gearshape") }
+        VStack(spacing: 0) {
+            if ext.state.isActive {
+                Group {
+                    if let session = previewSession {
+                        CapturePreviewView(session: session)
+                    } else {
+                        Color.black.opacity(0.85)
+                            .overlay {
+                                Text("Preview loading…")
+                                    .foregroundStyle(.secondary)
+                                    .font(.callout)
+                            }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .aspectRatio(16 / 9, contentMode: .fit)
+            }
+
+            TabView {
+                cameraTab
+                    .tabItem { Label("Camera", systemImage: "camera.fill") }
+                widgetsTab
+                    .tabItem { Label("Widgets", systemImage: "square.grid.2x2") }
+                outputTab
+                    .tabItem { Label("Output", systemImage: "gearshape") }
+            }
         }
         .frame(minWidth: 420, minHeight: 460)
         .task {
@@ -129,26 +148,6 @@ struct ContentView: View {
                     Button("Install Camera Extension") { ext.install() }
                         .buttonStyle(.borderedProminent)
                         .disabled(ext.state.isBusy)
-                }
-            }
-
-            if ext.state.isActive {
-                Section("Live Preview") {
-                    Group {
-                        if let session = previewSession {
-                            CapturePreviewView(session: session)
-                        } else {
-                            Color.black.opacity(0.7)
-                                .overlay {
-                                    Text("Preview loading…")
-                                        .foregroundStyle(.secondary)
-                                        .font(.callout)
-                                }
-                        }
-                    }
-                    .frame(height: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                 }
             }
 
