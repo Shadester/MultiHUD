@@ -85,7 +85,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     private var segFrameCounter = 0          // throttle segmentation to every 3rd frame
 
     private var currentSettings = ExtensionSettings()
-    private var settingsFileMtime: Date?
+    private var settingsNotifyToken: Int32 = NOTIFY_TOKEN_INVALID
 
     // Clock formatter (re-used to avoid allocation each frame)
     private let clockFormatter: DateFormatter = {
@@ -173,6 +173,14 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
         currentSettings = ExtensionSettings.load()
 
+        notify_register_dispatch(
+            "net.fakeapps.MultiHUD.settingsChanged",
+            &settingsNotifyToken,
+            streamingQueue
+        ) { [weak self] _ in
+            self?.currentSettings = ExtensionSettings.load()
+        }
+
         let timer = DispatchSource.makeTimerSource(queue: streamingQueue)
         timer.schedule(deadline: .now(), repeating: .milliseconds(33))
         timer.setEventHandler { [weak self] in self?.emitFrame() }
@@ -187,6 +195,10 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     }
 
     func stopStreaming() {
+        if settingsNotifyToken != NOTIFY_TOKEN_INVALID {
+            notify_cancel(settingsNotifyToken)
+            settingsNotifyToken = NOTIFY_TOKEN_INVALID
+        }
         streamTimer?.cancel()
         streamTimer = nil
         sessionQueue.async { [weak self] in
@@ -302,15 +314,6 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: - Frame emission
 
     private func emitFrame() {
-        // Reload settings when settings.json changes (mtime check, same pattern as background.jpg).
-        if let url = sharedContainerURL("settings.json") {
-            let mtime = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
-            if mtime != settingsFileMtime {
-                settingsFileMtime = mtime
-                currentSettings = ExtensionSettings.load()
-            }
-        }
-
         frameLock.lock()
         let inputBuffer = latestPixelBuffer
         frameLock.unlock()

@@ -6,6 +6,7 @@
 import SwiftUI
 import AppKit
 import AVFoundation
+import Combine
 import CoreLocation
 import UniformTypeIdentifiers
 
@@ -114,6 +115,12 @@ struct ContentView: View {
         }
         .onChange(of: ext.state.isActive) { _, isActive in
             if isActive { startPreview() } else { stopPreview() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.wasConnectedNotification)) { notif in
+            guard let device = notif.object as? AVCaptureDevice,
+                  device.localizedName == "MultiHUD",
+                  ext.state.isActive else { return }
+            startPreview()
         }
     }
 

@@ -73,6 +73,7 @@
 		2729412BA9AF5422EC61BCD8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiHUDApp.swift; sourceTree = "<group>"; };
 		34DDC5B1799C5F6C32BD1287 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		42FA04B68563DC2F3C59530E /* CameraExtension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CameraExtension-Bridging-Header.h"; sourceTree = "<group>"; };
 		49F6EE44609BEC77CF432D82 /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
 		5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
 		63705EBCC895B2BA346C4260 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -187,6 +188,7 @@
 		C79B6D8117D371FAF0C57765 /* CameraExtension */ = {
 			isa = PBXGroup;
 			children = (
+				42FA04B68563DC2F3C59530E /* CameraExtension-Bridging-Header.h */,
 				E8376687F7C583086140A568 /* CameraExtensionProvider.swift */,
 				8C0B981AA7E1943041791B24 /* DurationFormatter.swift */,
 				B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */,
@@ -460,7 +462,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -488,6 +490,7 @@
 				PRODUCT_NAME = net.fakeapps.MultiHUD.CameraExtension;
 				PROVISIONING_PROFILE_SPECIFIER = "7a1b1a40-d8c7-44e3-9641-535ca7b9df95";
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "CameraExtension/CameraExtension-Bridging-Header.h";
 			};
 			name = Debug;
 		};
@@ -541,7 +544,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_CODE_SIGN_FLAGS = "--timestamp";
@@ -585,6 +588,7 @@
 				PRODUCT_NAME = net.fakeapps.MultiHUD.CameraExtension;
 				PROVISIONING_PROFILE_SPECIFIER = "7a1b1a40-d8c7-44e3-9641-535ca7b9df95";
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "CameraExtension/CameraExtension-Bridging-Header.h";
 			};
 			name = Release;
 		};

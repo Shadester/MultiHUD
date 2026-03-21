@@ -57,6 +57,15 @@ cp -R ~/Library/Developer/Xcode/DerivedData/MultiHUD-*/Build/Products/Debug/Mult
 open /Applications/MultiHUD.app
 ```
 
+## Deploy (Release + notarize + install)
+
+```bash
+cd MultiHUD
+bash scripts/deploy.sh
+```
+
+Builds Release, verifies signature, notarizes via `xcrun notarytool` (keychain profile `MultiHUD`), staples, installs to `/Applications`, and relaunches the app.
+
 ## Development notes
 
 - **Never edit the `.xcodeproj` directly** — always edit `project.yml` and run `xcodegen generate`

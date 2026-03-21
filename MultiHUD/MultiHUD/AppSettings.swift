@@ -112,6 +112,11 @@ final class AppSettings {
               let data = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted) else { return }
         do {
             try data.write(to: url, options: .atomic)
+            CFNotificationCenterPostNotification(
+                CFNotificationCenterGetDarwinNotifyCenter(),
+                CFNotificationName("net.fakeapps.MultiHUD.settingsChanged" as CFString),
+                nil, nil, true
+            )
         } catch {
             os_log(.error, "MultiHUD: failed to save settings.json: %{public}@",
                    error.localizedDescription)
