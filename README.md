@@ -9,16 +9,19 @@ A macOS app that overlays live data onto a virtual camera feed — inspired by [
 - **Widget overlays** — compositable pills rendered on the stream, each independently positionable:
   - **Weather** — current temperature and conditions via WeatherKit; survives video-app background replacement
   - **Clock** — live wall clock with timezone abbreviation
-  - **Meeting timer** — countup stopwatch, start/reset from the host app
+  - **Meeting timer** — countup stopwatch, start/reset from the host app or menu bar
   - **Countdown** — counts down to a target clock time you set; stays at 0:00 when reached
 - **Virtual background** — pick any image (JPEG, PNG, HEIC, …); the extension segments you using Vision and composites you over it each frame
-- **Camera source selection** — choose which physical camera to use as the source when multiple cameras are available
+- **Blur background** — blur your real background without a custom image
+- **Dynamic resolution** — switch between 720p and 1080p live without reinstalling the extension
+- **Camera source selection** — choose which physical camera to use when multiple cameras are available
+- **Menu bar extra** — quick-access toggles for all widgets and opacity, without opening the main window
 - **Auto-launch** — the host app starts automatically the moment a video app activates the virtual camera
 
 ## Requirements
 
 - macOS 26.2+
-- Apple Developer account with WeatherKit and System Extension capabilities enabled for `net.fakeapps.MultiHUD`
+- Apple Developer account with **WeatherKit** and **System Extension** capabilities enabled for `net.fakeapps.MultiHUD`
 
 ## Build & Run
 
@@ -31,6 +34,29 @@ open /Applications/MultiHUD.app
 ```
 
 > System extensions require the app to run from `/Applications`.
+
+## Deploy (Release build, notarize, install locally)
+
+```bash
+cd MultiHUD
+bash scripts/deploy.sh
+```
+
+Builds Release, verifies signature, notarizes via `xcrun notarytool` (keychain profile `MultiHUD`), staples, installs to `/Applications`, and relaunches the app. The keychain profile name and signing identity are specific to the original developer — fork maintainers will need to update `scripts/deploy.sh` accordingly.
+
+## Releases
+
+Tagged releases (`v*`) trigger a GitHub Actions workflow that builds, signs, notarizes, and publishes a `.dmg` to the [Releases](../../releases) page. The workflow requires the following repository secrets:
+
+| Secret | Description |
+|---|---|
+| `BUILD_CERTIFICATE_BASE64` | Developer ID Application certificate (`.p12`), base64-encoded |
+| `P12_PASSWORD` | Password for the `.p12` |
+| `KEYCHAIN_PASSWORD` | Temporary keychain password used during the build |
+| `MAIN_PROFILE_BASE64` | Provisioning profile for `net.fakeapps.MultiHUD`, base64-encoded |
+| `EXTENSION_PROFILE_BASE64` | Provisioning profile for `net.fakeapps.MultiHUD.CameraExtension`, base64-encoded |
+| `APPLE_ID` | Apple ID used for notarization |
+| `APPLE_ID_PASSWORD` | App-specific password for the Apple ID |
 
 ## Architecture
 
@@ -75,9 +101,9 @@ The host app fetches weather via WeatherKit and writes it to a shared app group 
 
 ## Tech Stack
 
-- Swift 5, SwiftUI
+- Swift, SwiftUI — macOS 26.2+
 - CoreMediaIO / CMIOExtension (virtual camera)
 - WeatherKit + CoreLocation
 - AVFoundation (webcam capture)
-- Vision (`VNGeneratePersonSegmentationRequest`, virtual background)
+- Vision (`VNGeneratePersonSegmentationRequest`, virtual background + blur)
 - CoreImage / CIFilter (compositing pipeline)
