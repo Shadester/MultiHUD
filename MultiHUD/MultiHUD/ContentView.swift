@@ -9,6 +9,9 @@ import AVFoundation
 import Combine
 import CoreLocation
 import UniformTypeIdentifiers
+import os.log
+
+private let previewLogger = Logger(subsystem: "net.fakeapps.MultiHUD", category: "preview")
 
 private let kAppGroup = "HGS3GTCF73.net.fakeapps.MultiHUD"
 
@@ -39,6 +42,8 @@ private struct CapturePreviewView: NSViewRepresentable {
 // MARK: - ContentView
 
 struct ContentView: View {
+
+    var showPreview: Bool = true
 
     @Environment(AppSettings.self) private var settings
     @Environment(ExtensionManager.self) private var ext
@@ -74,7 +79,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if ext.state.isActive {
+            if showPreview, ext.state.isActive {
                 Group {
                     if let session = previewSession {
                         CapturePreviewView(session: session)
@@ -89,6 +94,8 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .aspectRatio(16 / 9, contentMode: .fit)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
             }
 
             TabView {
@@ -96,8 +103,6 @@ struct ContentView: View {
                     .tabItem { Label("Camera", systemImage: "camera.fill") }
                 widgetsTab
                     .tabItem { Label("Widgets", systemImage: "square.grid.2x2") }
-                outputTab
-                    .tabItem { Label("Output", systemImage: "gearshape") }
             }
         }
         .frame(minWidth: 420, minHeight: 460)
@@ -106,21 +111,36 @@ struct ContentView: View {
             hasBackground = sharedURL("background.jpg").map {
                 FileManager.default.fileExists(atPath: $0.path)
             } ?? false
-            if ext.state.isActive { startPreview() }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
             }
         }
-        .onChange(of: ext.state.isActive) { _, isActive in
-            if isActive { startPreview() } else { stopPreview() }
+        .task(id: ext.state.isActive) {
+            guard showPreview else { return }
+            if ext.state.isActive {
+                // Retry up to 5 times with 300ms gaps — device may not be in the
+                // discovery list immediately after the extension activation callback.
+                for attempt in 0..<6 {
+                    if attempt > 0 {
+                        try? await Task.sleep(nanoseconds: 300_000_000)
+                        guard !Task.isCancelled else { return }
+                    }
+                    if startPreview() { return }
+                    previewLogger.log("startPreview attempt \(attempt) failed, retrying…")
+                }
+                previewLogger.log("startPreview: all attempts failed")
+            } else {
+                stopPreview()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.wasConnectedNotification)) { notif in
-            guard let device = notif.object as? AVCaptureDevice,
+            guard showPreview,
+                  let device = notif.object as? AVCaptureDevice,
                   device.localizedName == "MultiHUD",
                   ext.state.isActive else { return }
-            startPreview()
+            _ = startPreview()
         }
     }
 
@@ -229,6 +249,26 @@ struct ContentView: View {
                     .onChange(of: settings.blurBackground) { _, _ in settings.save() }
                     .disabled(hasBackground)
             }
+
+            Section("Video") {
+                Picker("Resolution", selection: s.resolution) {
+                    Text("720p — 1280×720 (default)").tag("720p")
+                    Text("1080p — 1920×1080").tag("1080p")
+                }
+                .onChange(of: settings.resolution) { _, _ in settings.save() }
+
+                Picker("Segmentation", selection: s.segQuality) {
+                    Text("Fast (recommended)").tag("fast")
+                    Text("Balanced").tag("balanced")
+                    Text("Accurate").tag("accurate")
+                }
+                .onChange(of: settings.segQuality) { _, _ in settings.save() }
+
+                Text("After installing, select **MultiHUD** as your camera in Zoom, Meet, or any video app.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .formStyle(.grouped)
         .fileImporter(
@@ -246,7 +286,7 @@ struct ContentView: View {
     private var widgetsTab: some View {
         let s = Bindable(settings)
         return Form {
-            Section {
+            Section("Overlay") {
                 HStack {
                     Text("Opacity")
                     Slider(value: s.opacity, in: 0.1...1.0, step: 0.05)
@@ -257,13 +297,17 @@ struct ContentView: View {
                 }
             }
 
-            Section("Widgets") {
+            Section("Weather") {
                 widgetRow(label: "Weather", enabled: s.weatherEnabled,
                           position: s.weatherPosition, preview: "Temperature")
+            }
 
+            Section("Clock") {
                 widgetRow(label: "Clock", enabled: s.clockEnabled,
                           position: s.clockPosition, preview: clockPreview)
+            }
 
+            Section("Meeting Timer") {
                 widgetRow(label: "Meeting timer", enabled: s.countupEnabled,
                           position: s.countupPosition, preview: nil)
                 HStack(spacing: 8) {
@@ -276,7 +320,9 @@ struct ContentView: View {
                         .controlSize(.small)
                         .disabled(settings.countupStartedAt == 0)
                 }
+            }
 
+            Section("Countdown") {
                 widgetRow(label: "Countdown", enabled: s.countdownEnabled,
                           position: s.countdownPosition, preview: nil)
                 DatePicker("End time", selection: s.countdownEndTime,
@@ -297,36 +343,6 @@ struct ContentView: View {
         .formStyle(.grouped)
     }
 
-    // MARK: - Output tab
-
-    private var outputTab: some View {
-        let s = Bindable(settings)
-        return Form {
-            Section("Video") {
-                Picker("Resolution", selection: s.resolution) {
-                    Text("720p — 1280×720 (default)").tag("720p")
-                    Text("1080p — 1920×1080").tag("1080p")
-                }
-                .onChange(of: settings.resolution) { _, _ in settings.save() }
-
-                Picker("Segmentation", selection: s.segQuality) {
-                    Text("Fast (recommended)").tag("fast")
-                    Text("Balanced").tag("balanced")
-                    Text("Accurate").tag("accurate")
-                }
-                .onChange(of: settings.segQuality) { _, _ in settings.save() }
-            }
-
-            Section {
-                Text("After installing, select **MultiHUD** as your camera in Zoom, Meet, or any video app.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .formStyle(.grouped)
-    }
-
     // MARK: - Widget row
 
     @ViewBuilder
@@ -339,16 +355,8 @@ struct ContentView: View {
             if let preview {
                 Text(preview).font(.caption).foregroundStyle(.secondary)
             }
-            Picker("", selection: position) {
-                Text("↙").tag("bottomLeft")
-                Text("↓").tag("bottomCenter")
-                Text("↘").tag("bottomRight")
-                Text("↖").tag("topLeft")
-                Text("↗").tag("topRight")
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 160)
-            .onChange(of: position.wrappedValue) { _, _ in settings.save() }
+            PositionGridPicker(position: position)
+                .onChange(of: position.wrappedValue) { _, _ in settings.save() }
         }
     }
 
@@ -391,23 +399,91 @@ struct ContentView: View {
 
     // MARK: - Preview
 
-    private func startPreview() {
-        guard previewSession == nil else { return }
+    @discardableResult
+    private func startPreview() -> Bool {
+        guard previewSession == nil else {
+            previewLogger.log("startPreview: already have session")
+            return true
+        }
         let devices = AVCaptureDevice.DiscoverySession(
             deviceTypes: [.external], mediaType: .video, position: .unspecified
         ).devices
-        guard let virtualCam = devices.first(where: { $0.localizedName == "MultiHUD" }),
-              let input = try? AVCaptureDeviceInput(device: virtualCam) else { return }
+        previewLogger.log("startPreview: found \(devices.count) external devices: \(devices.map(\.localizedName).joined(separator: ", "))")
+        guard let virtualCam = devices.first(where: { $0.localizedName == "MultiHUD" }) else {
+            previewLogger.log("startPreview: MultiHUD not in discovery list")
+            return false
+        }
+        guard let input = try? AVCaptureDeviceInput(device: virtualCam) else {
+            previewLogger.log("startPreview: failed to create AVCaptureDeviceInput")
+            return false
+        }
         let session = AVCaptureSession()
-        guard session.canAddInput(input) else { return }
+        guard session.canAddInput(input) else {
+            previewLogger.log("startPreview: canAddInput returned false")
+            return false
+        }
         session.addInput(input)
         previewSession = session
+        previewLogger.log("startPreview: session created, starting…")
         Task.detached(priority: .userInitiated) { session.startRunning() }
+        return true
     }
 
     private func stopPreview() {
         previewSession?.stopRunning()
         previewSession = nil
+    }
+}
+
+// MARK: - PositionGridPicker
+
+private struct PositionGridPicker: View {
+    @Binding var position: String
+
+    private struct Cell: Identifiable {
+        let id: String   // position tag, or "" for the disabled gap
+        let row: Int
+        let col: Int
+    }
+
+    private let cells: [Cell] = [
+        Cell(id: "topLeft",      row: 0, col: 0),
+        Cell(id: "",             row: 0, col: 1), // gap — no topCenter
+        Cell(id: "topRight",     row: 0, col: 2),
+        Cell(id: "bottomLeft",   row: 1, col: 0),
+        Cell(id: "bottomCenter", row: 1, col: 1),
+        Cell(id: "bottomRight",  row: 1, col: 2),
+    ]
+
+    var body: some View {
+        VStack(spacing: 3) {
+            ForEach(0..<2, id: \.self) { row in
+                HStack(spacing: 3) {
+                    ForEach(cells.filter { $0.row == row }) { cell in
+                        if cell.id.isEmpty {
+                            Color.clear.frame(width: 26, height: 18)
+                        } else {
+                            let selected = position == cell.id
+                            Button {
+                                position = cell.id
+                            } label: {
+                                Circle()
+                                    .fill(selected ? Color.accentColor : Color.secondary.opacity(0.4))
+                                    .frame(width: 5, height: 5)
+                                    .frame(width: 26, height: 18)
+                            }
+                            .buttonStyle(.plain)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(selected ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.08))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        .padding(3)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.06)))
     }
 }
 

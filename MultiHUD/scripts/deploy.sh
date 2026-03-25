@@ -14,6 +14,9 @@ CONFIGURATION="Release"
 BUILD_DIR="$PROJECT_DIR/.build"
 ZIP_PATH="$BUILD_DIR/$APP_NAME.zip"
 
+echo "==> Generating Xcode project..."
+xcodegen generate
+
 echo "==> Building $SCHEME ($CONFIGURATION)..."
 xcodebuild \
   -scheme "$SCHEME" \
@@ -56,5 +59,6 @@ ditto "$APP_PATH" "/Applications/$APP_NAME.app"
 
 echo "==> Done. Launching MultiHUD..."
 pkill -x MultiHUD 2>/dev/null || true
+pkill -KILL -x MultiHUD 2>/dev/null || true
 sleep 1
 open /Applications/MultiHUD.app

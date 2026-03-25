@@ -46,7 +46,6 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     private(set) var device: CMIOExtensionDevice!
     private var _streamSource: CameraExtensionStreamSource!
-    private var _videoDescription: CMFormatDescription!
 
     private let sessionQueue      = DispatchQueue(label: "com.multihud.session")
     private let videoOutputQueue  = DispatchQueue(label: "com.multihud.videoOutput")
@@ -94,28 +93,35 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         return f
     }()
 
-    // Output resolution — read once at init from shared container
-    private let outputWidth: Int
-    private let outputHeight: Int
+    // Output resolution — switches dynamically via dual CMIOExtensionStreamFormat
+    private var _videoDesc720:  CMFormatDescription!
+    private var _videoDesc1080: CMFormatDescription!
+    private var activeResolutionIndex: Int = 0   // 0 = 720p, 1 = 1080p
 
-    // Pixel buffer pool — avoids per-frame allocation
+    private var outputWidth:  Int { activeResolutionIndex == 1 ? 1920 : kDefaultWidth }
+    private var outputHeight: Int { activeResolutionIndex == 1 ? 1080 : kDefaultHeight }
+    private var activeVideoDescription: CMFormatDescription {
+        activeResolutionIndex == 1 ? _videoDesc1080 : _videoDesc720
+    }
+
+    // Pixel buffer pool — avoids per-frame allocation; nil'd when resolution changes
     private var outputBufferPool: CVPixelBufferPool?
 
-    private static func readResolution() -> (width: Int, height: Int) {
+    private static func readInitialResolutionIndex() -> Int {
         guard let url  = sharedContainerURL("settings.json"),
               let data = try? Data(contentsOf: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               json["resolution"] as? String == "1080p" else {
-            return (kDefaultWidth, kDefaultHeight)
+            return 0
         }
-        return (1920, 1080)
+        return 1
     }
 
     init(localizedName: String) {
-        let res = Self.readResolution()
-        outputWidth  = res.width
-        outputHeight = res.height
         super.init()
+
+        activeResolutionIndex = Self.readInitialResolutionIndex()
+
         self.device = CMIOExtensionDevice(
             localizedName: localizedName,
             deviceID: kDeviceUUID,
@@ -123,18 +129,29 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             source: self
         )
 
-        let dims = CMVideoDimensions(width: Int32(outputWidth), height: Int32(outputHeight))
         CMVideoFormatDescriptionCreate(
             allocator: kCFAllocatorDefault,
             codecType: kCVPixelFormatType_32BGRA,
-            width: dims.width,
-            height: dims.height,
+            width: Int32(kDefaultWidth), height: Int32(kDefaultHeight),
             extensions: nil,
-            formatDescriptionOut: &_videoDescription
+            formatDescriptionOut: &_videoDesc720
+        )
+        CMVideoFormatDescriptionCreate(
+            allocator: kCFAllocatorDefault,
+            codecType: kCVPixelFormatType_32BGRA,
+            width: 1920, height: 1080,
+            extensions: nil,
+            formatDescriptionOut: &_videoDesc1080
         )
 
-        let videoStreamFormat = CMIOExtensionStreamFormat(
-            formatDescription: _videoDescription,
+        let fmt720 = CMIOExtensionStreamFormat(
+            formatDescription: _videoDesc720,
+            maxFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)),
+            minFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)),
+            validFrameDurations: nil
+        )
+        let fmt1080 = CMIOExtensionStreamFormat(
+            formatDescription: _videoDesc1080,
             maxFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)),
             minFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)),
             validFrameDurations: nil
@@ -143,9 +160,11 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         _streamSource = CameraExtensionStreamSource(
             localizedName: "MultiHUD Video",
             streamID: kStreamUUID,
-            streamFormat: videoStreamFormat,
+            formats: [fmt720, fmt1080],
             device: device
         )
+        _streamSource.activeFormatIndex = activeResolutionIndex
+
         do {
             try device.addStream(_streamSource.stream)
         } catch {
@@ -166,6 +185,19 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     func setDeviceProperties(_ deviceProperties: CMIOExtensionDeviceProperties) throws {}
 
+    // Called from CameraExtensionStreamSource when AVFoundation sets a new activeFormatIndex
+    // (e.g. at connect time when it picks the highest-resolution format).
+    func applyResolutionIndex(_ index: Int) {
+        streamingQueue.async { [weak self] in
+            guard let self, index != self.activeResolutionIndex else { return }
+            self.activeResolutionIndex = index
+            self.outputBufferPool = nil
+            self.latestMaskCI = nil
+            self.backgroundCI = nil
+            logger.log("applyResolutionIndex: \(index) (\(index == 1 ? "1080p" : "720p", privacy: .public))")
+        }
+    }
+
     // MARK: - Streaming lifecycle
 
     func startStreaming() {
@@ -178,7 +210,18 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             &settingsNotifyToken,
             streamingQueue
         ) { [weak self] _ in
-            self?.currentSettings = ExtensionSettings.load()
+            guard let self else { return }
+            self.currentSettings = ExtensionSettings.load()
+            let newIndex = self.currentSettings.resolution == "1080p" ? 1 : 0
+            logger.log("settingsChanged: resolution=\(self.currentSettings.resolution, privacy: .public) newIndex=\(newIndex) currentIndex=\(self.activeResolutionIndex)")
+            if newIndex != self.activeResolutionIndex {
+                self.activeResolutionIndex = newIndex
+                self.outputBufferPool = nil
+                self.latestMaskCI = nil
+                self.backgroundCI = nil
+                logger.log("Resolution switching to \(newIndex == 1 ? "1080p" : "720p", privacy: .public)")
+                self._streamSource.notifyActiveFormatChanged(newIndex)
+            }
         }
 
         let timer = DispatchSource.makeTimerSource(queue: streamingQueue)
@@ -223,7 +266,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             logger.error("No physical camera device found")
             return nil
         }
-        logger.info("Using camera: \(camera.localizedName, privacy: .public)")
+        logger.log("Using camera: \(camera.localizedName, privacy: .public)")
 
         let input: AVCaptureDeviceInput
         do {
@@ -235,7 +278,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
         let session = AVCaptureSession()
         session.beginConfiguration()
-        session.sessionPreset = outputHeight >= 1080 ? .hd1920x1080 : .hd1280x720
+        session.sessionPreset = .hd1920x1080
 
         guard session.canAddInput(input) else {
             logger.error("Cannot add input to session")
@@ -263,7 +306,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         }
 
         session.commitConfiguration()
-        logger.info("Capture session configured successfully")
+        logger.log("Capture session configured successfully")
         return session
     }
 
@@ -277,9 +320,9 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             mediaType: .video,
             position: .unspecified
         )
-        logger.info("DiscoverySession found \(discoverySession.devices.count) devices")
+        logger.log("DiscoverySession found \(discoverySession.devices.count) devices")
         for d in discoverySession.devices {
-            logger.info("  device=\(d.localizedName, privacy: .public) type=\(d.deviceType.rawValue, privacy: .public)")
+            logger.log("  device=\(d.localizedName, privacy: .public) type=\(d.deviceType.rawValue, privacy: .public)")
         }
 
         if let url  = sharedContainerURL("settings.json"),
@@ -287,7 +330,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let id   = json["cameraId"] as? String, !id.isEmpty,
            let preferred = discoverySession.devices.first(where: { $0.uniqueID == id }) {
-            logger.info("Using preferred camera: \(preferred.localizedName, privacy: .public)")
+            logger.log("Using preferred camera: \(preferred.localizedName, privacy: .public)")
             return preferred
         }
 
@@ -344,7 +387,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             dataReady: true,
             makeDataReadyCallback: nil,
             refcon: nil,
-            formatDescription: _videoDescription,
+            formatDescription: activeVideoDescription,
             sampleTiming: &timing,
             sampleBufferOut: &sampleBuffer
         )
@@ -536,6 +579,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
                 let view = OverlayPillView(items: items, opacity: opacity)
                 let renderer = ImageRenderer(content: view)
                 renderer.scale = 2
+                renderer.proposedSize = ProposedViewSize(width: nil, height: nil)
                 return renderer.cgImage
             }
         }
@@ -575,12 +619,13 @@ private struct OverlayPillView: View {
     let opacity: Double
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                 if index > 0 { pillDivider }
                 itemView(for: item)
             }
         }
+        .fixedSize()
         .foregroundStyle(.white)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -623,8 +668,8 @@ private struct OverlayPillView: View {
 
     private var pillDivider: some View {
         Rectangle()
-            .fill(.white.opacity(0.4))
-            .frame(width: 1, height: 16)
+            .fill(.white.opacity(0.5))
+            .frame(width: 1.5, height: 18)
     }
 }
 
@@ -650,11 +695,11 @@ class CameraExtensionStreamSource: NSObject, CMIOExtensionStreamSource {
 
     private(set) var stream: CMIOExtensionStream!
     let device: CMIOExtensionDevice
-    private let _streamFormat: CMIOExtensionStreamFormat
+    private let _streamFormats: [CMIOExtensionStreamFormat]
 
-    init(localizedName: String, streamID: UUID, streamFormat: CMIOExtensionStreamFormat, device: CMIOExtensionDevice) {
+    init(localizedName: String, streamID: UUID, formats: [CMIOExtensionStreamFormat], device: CMIOExtensionDevice) {
         self.device = device
-        self._streamFormat = streamFormat
+        self._streamFormats = formats
         super.init()
         self.stream = CMIOExtensionStream(
             localizedName: localizedName,
@@ -665,8 +710,16 @@ class CameraExtensionStreamSource: NSObject, CMIOExtensionStreamSource {
         )
     }
 
-    var formats: [CMIOExtensionStreamFormat] { [_streamFormat] }
+    var formats: [CMIOExtensionStreamFormat] { _streamFormats }
     var activeFormatIndex: Int = 0
+
+    func notifyActiveFormatChanged(_ index: Int) {
+        activeFormatIndex = index
+        logger.log("notifyActiveFormatChanged: index=\(index)")
+        stream.notifyPropertiesChanged([
+            .streamActiveFormatIndex: CMIOExtensionPropertyState<AnyObject>(value: index as NSNumber)
+        ])
+    }
 
     var availableProperties: Set<CMIOExtensionProperty> {
         [.streamActiveFormatIndex, .streamFrameDuration]
@@ -674,7 +727,7 @@ class CameraExtensionStreamSource: NSObject, CMIOExtensionStreamSource {
 
     func streamProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionStreamProperties {
         let props = CMIOExtensionStreamProperties(dictionary: [:])
-        if properties.contains(.streamActiveFormatIndex) { props.activeFormatIndex = 0 }
+        if properties.contains(.streamActiveFormatIndex) { props.activeFormatIndex = activeFormatIndex }
         if properties.contains(.streamFrameDuration) {
             props.frameDuration = CMTime(value: 1, timescale: Int32(kFrameRate))
         }
@@ -682,7 +735,10 @@ class CameraExtensionStreamSource: NSObject, CMIOExtensionStreamSource {
     }
 
     func setStreamProperties(_ streamProperties: CMIOExtensionStreamProperties) throws {
-        if let idx = streamProperties.activeFormatIndex { activeFormatIndex = idx }
+        if let idx = streamProperties.activeFormatIndex {
+            activeFormatIndex = idx
+            (device.source as? CameraExtensionDeviceSource)?.applyResolutionIndex(idx)
+        }
     }
 
     func authorizedToStartStream(for client: CMIOExtensionClient) -> Bool { true }

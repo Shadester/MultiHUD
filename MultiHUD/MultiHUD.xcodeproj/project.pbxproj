@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0777D556F670702F8CF76198 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63705EBCC895B2BA346C4260 /* SwiftUI.framework */; };
+		08315C1A42248CF4AA9CD3BE /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73735BC6E631A817CB10A703 /* MenuBarView.swift */; };
 		34D96025EF5B202E18939934 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */; };
 		370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */; };
 		52232F53E5E23109C6CCD3F5 /* ExtensionSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AC2F05F18288C3B0F51573 /* ExtensionSettingsTests.swift */; };
@@ -78,6 +79,7 @@
 		5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
 		63705EBCC895B2BA346C4260 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		73735BC6E631A817CB10A703 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		85AC2F05F18288C3B0F51573 /* ExtensionSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionSettingsTests.swift; sourceTree = "<group>"; };
 		8C0B981AA7E1943041791B24 /* DurationFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationFormatter.swift; sourceTree = "<group>"; };
 		904149553F57F812D8E56818 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
@@ -144,6 +146,7 @@
 				A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */,
 				DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */,
 				34DDC5B1799C5F6C32BD1287 /* Info.plist */,
+				73735BC6E631A817CB10A703 /* MenuBarView.swift */,
 				336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */,
 				A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */,
 				904149553F57F812D8E56818 /* WeatherService.swift */,
@@ -339,6 +342,7 @@
 				9FFDDC8015DB78D21A25F265 /* AppSettings.swift in Sources */,
 				34D96025EF5B202E18939934 /* ContentView.swift in Sources */,
 				722170BD66FA82EEC4AA6480 /* ExtensionManager.swift in Sources */,
+				08315C1A42248CF4AA9CD3BE /* MenuBarView.swift in Sources */,
 				370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */,
 				B098453811690FEC5EF1D820 /* WeatherService.swift in Sources */,
 			);

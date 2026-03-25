@@ -48,6 +48,7 @@ targets:
       path: MultiHUD/Info.plist
       properties:
         CFBundleDisplayName: MultiHUD
+        LSUIElement: YES
         NSCameraUsageDescription: "MultiHUD uses your camera to apply overlays."
         NSLocationWhenInUseUsageDescription: "MultiHUD uses your location to display local weather."
         CFBundleURLTypes:

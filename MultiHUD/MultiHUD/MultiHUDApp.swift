@@ -13,7 +13,7 @@ struct MultiHUDApp: App {
     @State private var ext = ExtensionManager()
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             ContentView()
                 .environment(settings)
                 .environment(ext)
@@ -27,7 +27,7 @@ struct MultiHUDApp: App {
         }
 
         MenuBarExtra("MultiHUD", systemImage: "camera.filters") {
-            ContentView()
+            MenuBarView()
                 .environment(settings)
                 .environment(ext)
         }
