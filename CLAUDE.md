@@ -86,3 +86,4 @@ Builds Release, verifies signature, notarizes via `xcrun notarytool` (keychain p
 - **Preview session retry**: `ContentView` uses `.task(id: ext.state.isActive)` with up to 6 retries (300 ms apart) to start the preview — the CMIOExtension device may not be in the discovery list immediately after the activation callback fires.
 - **GitHub Actions release**: workflow triggers on `v*` tags; requires 7 repository secrets (certificate, provisioning profiles, Apple ID). Use `git tag v<version>` when releasing.
 - **Logger**: extension uses `Logger(subsystem: "net.fakeapps.MultiHUD.CameraExtension", category: "camera")` at `.log()` (default) level — visible in `log show` for signed builds. Host app uses `Logger(subsystem: "net.fakeapps.MultiHUD", category: "preview")`.
+- **Log command**: use `/usr/bin/log` not `log` — zsh has a conflicting built-in. E.g. `/usr/bin/log show --predicate 'process == "net.fakeapps.MultiHUD.CameraExtension"' --last 5m`
