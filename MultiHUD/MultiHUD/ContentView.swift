@@ -473,6 +473,7 @@ private struct PositionGridPicker: View {
                                     .frame(width: 26, height: 18)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                             .background(
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(selected ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.08))

@@ -211,10 +211,11 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             streamingQueue
         ) { [weak self] _ in
             guard let self else { return }
+            let oldResolution = self.currentSettings.resolution
             self.currentSettings = ExtensionSettings.load()
+            let oldIndex = oldResolution == "1080p" ? 1 : 0
             let newIndex = self.currentSettings.resolution == "1080p" ? 1 : 0
-            logger.log("settingsChanged: resolution=\(self.currentSettings.resolution, privacy: .public) newIndex=\(newIndex) currentIndex=\(self.activeResolutionIndex)")
-            if newIndex != self.activeResolutionIndex {
+            if newIndex != oldIndex {
                 self.activeResolutionIndex = newIndex
                 self.outputBufferPool = nil
                 self.latestMaskCI = nil
@@ -480,13 +481,11 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         // Apply virtual background or blur via person segmentation mask.
         let baseLayer: CIImage
         if let customBg = backgroundCI {
-            // Custom background image: only apply person mask when camera is active.
-            // Without input, show the background directly to avoid stale mask artifacts.
-            let positionedBg = positioned(customBg, in: extent)
+            // Custom background image: pre-scaled at load time, use directly each frame.
             if input != nil, let mask {
-                baseLayer = compositeWithMask(person: webcamLayer, background: positionedBg, mask: mask)
+                baseLayer = compositeWithMask(person: webcamLayer, background: customBg, mask: mask)
             } else {
-                baseLayer = positionedBg
+                baseLayer = customBg
             }
         } else if settings.blurBackground, input != nil, let mask {
             // Gaussian blur of the webcam layer as background.
@@ -542,9 +541,15 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         }
         let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
         let mtime = attrs?[.modificationDate] as? Date
-        guard mtime != backgroundFileMtime else { return }
+        guard mtime != backgroundFileMtime || backgroundCI == nil else { return }
         backgroundFileMtime = mtime
-        backgroundCI = mtime != nil ? CIImage(contentsOf: url) : nil
+        guard mtime != nil, let raw = CIImage(contentsOf: url) else {
+            backgroundCI = nil
+            return
+        }
+        // Pre-scale to output dimensions once so render() can use it directly each frame.
+        let extent = CGRect(x: 0, y: 0, width: outputWidth, height: outputHeight)
+        backgroundCI = positioned(raw, in: extent)
     }
 
     private func widgetDisplayItem(_ w: WidgetConfig, now: Double, date: Date) -> WidgetDisplayItem? {
