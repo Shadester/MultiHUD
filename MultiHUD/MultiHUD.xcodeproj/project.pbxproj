@@ -9,8 +9,10 @@
 /* Begin PBXBuildFile section */
 		0777D556F670702F8CF76198 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63705EBCC895B2BA346C4260 /* SwiftUI.framework */; };
 		08315C1A42248CF4AA9CD3BE /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73735BC6E631A817CB10A703 /* MenuBarView.swift */; };
+		34453175C9A0C8D410C9605B /* rvm_mobilenetv3_1920x1080_s0.25_fp16.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = F7A258A0A1F87F8B8F8D0B03 /* rvm_mobilenetv3_1920x1080_s0.25_fp16.mlmodel */; };
 		34D96025EF5B202E18939934 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */; };
 		370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */; };
+		51AA24BFE68F6608F0D5ED59 /* GuidedFilter.metal in Sources */ = {isa = PBXBuildFile; fileRef = F4C0066F53EBC79C48CA44B0 /* GuidedFilter.metal */; };
 		52232F53E5E23109C6CCD3F5 /* ExtensionSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AC2F05F18288C3B0F51573 /* ExtensionSettingsTests.swift */; };
 		5414F958127917508B7CFFD1 /* WeatherKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 49F6EE44609BEC77CF432D82 /* WeatherKit.framework */; };
 		5791D2DD5B00CDA3CFF08BDD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */; };
@@ -18,9 +20,12 @@
 		6000A4C08CA1DC09D8F8F0FE /* ExtensionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927246A69DF3F26F64715E3C /* ExtensionManagerTests.swift */; };
 		649080689C17493B18479D00 /* CoreMediaIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */; };
 		66876E6CDD7C02A945BC3408 /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DA46AA7F3707AE81214DE88 /* Vision.framework */; };
+		6B510CF69307D72194EFB0ED /* RVMMatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E26B01EA2877265923504BD /* RVMMatting.swift */; };
+		6C226EDC3880839151F7638A /* GuidedFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2112B1E5364C5C1D8F3EBFC6 /* GuidedFilter.swift */; };
 		722170BD66FA82EEC4AA6480 /* ExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */; };
 		74E82147C90FF081782E5557 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3582B5E37AE7FDE183FF328 /* AppSettingsTests.swift */; };
 		93BF3A8C26352A2BC8DEF111 /* DurationFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B981AA7E1943041791B24 /* DurationFormatter.swift */; };
+		97C8CC9B5BD74F902FBBBFB4 /* rvm_mobilenetv3_1280x720_s0.375_fp16.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = C1F989483726B5C1F3D2A4CA /* rvm_mobilenetv3_1280x720_s0.375_fp16.mlmodel */; };
 		9F51C8C1AB78F9229919EADF /* ExtensionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */; };
 		9FFDDC8015DB78D21A25F265 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14107CA2CBAE25B925243E4F /* AppSettings.swift */; };
 		AE86A5ED575A3D6561CF0D82 /* DurationFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D31CD7CFA18CE988754142FA /* DurationFormatterTests.swift */; };
@@ -34,6 +39,7 @@
 		DC3B7C54409B4E04DCDA790F /* ExtensionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */; };
 		DDC16C06954111A7CAFA4D50 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A74F687AB3F3622ED3327F /* main.swift */; };
 		DEE3E555E79341BE594B072C /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DA46AA7F3707AE81214DE88 /* Vision.framework */; };
+		E7D4C90B16177FDD0F4F9CDF /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FE8BCC5B08D1736C2276D50A /* CoreML.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,7 +77,9 @@
 		03A74F687AB3F3622ED3327F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		14107CA2CBAE25B925243E4F /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		20B054380A88B2514460C1FC /* MultiHUD.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MultiHUD.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2112B1E5364C5C1D8F3EBFC6 /* GuidedFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidedFilter.swift; sourceTree = "<group>"; };
 		2729412BA9AF5422EC61BCD8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2E26B01EA2877265923504BD /* RVMMatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMMatting.swift; sourceTree = "<group>"; };
 		336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiHUDApp.swift; sourceTree = "<group>"; };
 		34DDC5B1799C5F6C32BD1287 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		42FA04B68563DC2F3C59530E /* CameraExtension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CameraExtension-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -90,12 +98,16 @@
 		A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMediaIO.framework; path = System/Library/Frameworks/CoreMediaIO.framework; sourceTree = SDKROOT; };
 		B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionSettings.swift; sourceTree = "<group>"; };
+		C1F989483726B5C1F3D2A4CA /* rvm_mobilenetv3_1280x720_s0.375_fp16.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = rvm_mobilenetv3_1280x720_s0.375_fp16.mlmodel; sourceTree = "<group>"; };
 		C3582B5E37AE7FDE183FF328 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		D2C14C1FF291F0D2F9057931 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		D31CD7CFA18CE988754142FA /* DurationFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationFormatterTests.swift; sourceTree = "<group>"; };
 		DA74587FEF6A158B2504FE14 /* ExtensionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionManager.swift; sourceTree = "<group>"; };
 		DBA4FE82F5AE4519947E7B91 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		E8376687F7C583086140A568 /* CameraExtensionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraExtensionProvider.swift; sourceTree = "<group>"; };
+		F4C0066F53EBC79C48CA44B0 /* GuidedFilter.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = GuidedFilter.metal; sourceTree = "<group>"; };
+		F7A258A0A1F87F8B8F8D0B03 /* rvm_mobilenetv3_1920x1080_s0.25_fp16.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = rvm_mobilenetv3_1920x1080_s0.25_fp16.mlmodel; sourceTree = "<group>"; };
+		FE8BCC5B08D1736C2276D50A /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = System/Library/Frameworks/CoreML.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +117,7 @@
 			files = (
 				D0E15783C55EA864B41B12B8 /* AVFoundation.framework in Frameworks */,
 				649080689C17493B18479D00 /* CoreMediaIO.framework in Frameworks */,
+				E7D4C90B16177FDD0F4F9CDF /* CoreML.framework in Frameworks */,
 				0777D556F670702F8CF76198 /* SwiftUI.framework in Frameworks */,
 				66876E6CDD7C02A945BC3408 /* Vision.framework in Frameworks */,
 			);
@@ -160,6 +173,7 @@
 				DBA4FE82F5AE4519947E7B91 /* AVFoundation.framework */,
 				7304BC7EA60C01A1CE979B42 /* CoreLocation.framework */,
 				ACCA29FF7BB621489D93249E /* CoreMediaIO.framework */,
+				FE8BCC5B08D1736C2276D50A /* CoreML.framework */,
 				63705EBCC895B2BA346C4260 /* SwiftUI.framework */,
 				9DA46AA7F3707AE81214DE88 /* Vision.framework */,
 				49F6EE44609BEC77CF432D82 /* WeatherKit.framework */,
@@ -195,7 +209,12 @@
 				E8376687F7C583086140A568 /* CameraExtensionProvider.swift */,
 				8C0B981AA7E1943041791B24 /* DurationFormatter.swift */,
 				B1C7E75F1E8B3332592258DC /* ExtensionSettings.swift */,
+				F4C0066F53EBC79C48CA44B0 /* GuidedFilter.metal */,
+				2112B1E5364C5C1D8F3EBFC6 /* GuidedFilter.swift */,
 				03A74F687AB3F3622ED3327F /* main.swift */,
+				C1F989483726B5C1F3D2A4CA /* rvm_mobilenetv3_1280x720_s0.375_fp16.mlmodel */,
+				F7A258A0A1F87F8B8F8D0B03 /* rvm_mobilenetv3_1920x1080_s0.25_fp16.mlmodel */,
+				2E26B01EA2877265923504BD /* RVMMatting.swift */,
 				D2C14C1FF291F0D2F9057931 /* WeatherService.swift */,
 			);
 			path = CameraExtension;
@@ -355,8 +374,13 @@
 				D6DBD41FCB65FCB6E5FDC3D4 /* CameraExtensionProvider.swift in Sources */,
 				D230D57B648495AF4CA4A7F8 /* DurationFormatter.swift in Sources */,
 				9F51C8C1AB78F9229919EADF /* ExtensionSettings.swift in Sources */,
+				51AA24BFE68F6608F0D5ED59 /* GuidedFilter.metal in Sources */,
+				6C226EDC3880839151F7638A /* GuidedFilter.swift in Sources */,
+				6B510CF69307D72194EFB0ED /* RVMMatting.swift in Sources */,
 				BB613EDF7C80FE0EC8D96292 /* WeatherService.swift in Sources */,
 				DDC16C06954111A7CAFA4D50 /* main.swift in Sources */,
+				97C8CC9B5BD74F902FBBBFB4 /* rvm_mobilenetv3_1280x720_s0.375_fp16.mlmodel in Sources */,
+				34453175C9A0C8D410C9605B /* rvm_mobilenetv3_1920x1080_s0.25_fp16.mlmodel in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -490,6 +514,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MTLLINKER_FLAGS = "-cikernel";
+				MTL_COMPILER_FLAGS = "-fcikernel";
 				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD.CameraExtension;
 				PRODUCT_NAME = net.fakeapps.MultiHUD.CameraExtension;
 				PROVISIONING_PROFILE_SPECIFIER = "7a1b1a40-d8c7-44e3-9641-535ca7b9df95";
@@ -588,6 +614,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MTLLINKER_FLAGS = "-cikernel";
+				MTL_COMPILER_FLAGS = "-fcikernel";
 				PRODUCT_BUNDLE_IDENTIFIER = net.fakeapps.MultiHUD.CameraExtension;
 				PRODUCT_NAME = net.fakeapps.MultiHUD.CameraExtension;
 				PROVISIONING_PROFILE_SPECIFIER = "7a1b1a40-d8c7-44e3-9641-535ca7b9df95";

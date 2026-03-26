@@ -132,6 +132,11 @@ struct ContentView: View {
             stopPreview()
             Task { await startPreviewWithRetry() }
         }
+        .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+            // Safety net: if extension is active but preview never started, keep trying.
+            guard showPreview, ext.state.isActive, previewSession == nil else { return }
+            Task { await startPreviewWithRetry() }
+        }
     }
 
     // MARK: - Camera tab

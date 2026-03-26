@@ -7,6 +7,8 @@ import Foundation
 import CoreMediaIO
 import AVFoundation
 import CoreImage
+import CoreML
+import Metal
 import SwiftUI
 import CoreGraphics
 import IOKit.audio
@@ -63,10 +65,20 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     private let maskLock = NSLock()
     private var latestMaskCI: CIImage?
 
-    private let ciContext = CIContext()
-    // Separate Metal context for mask baking on segmentationQueue so it doesn't
-    // block the main render pipeline on streamingQueue.
-    private let maskBakeContext = CIContext()
+    // Single shared CIContext: Metal command queue + no caching (WWDC 2020 best practice for video).
+    // CIContext is thread-safe — shared between streamingQueue and segmentationQueue.
+    private let ciContext: CIContext = {
+        guard let device = MTLCreateSystemDefaultDevice(),
+              let queue = device.makeCommandQueue() else { return CIContext() }
+        return CIContext(mtlCommandQueue: queue, options: [.cacheIntermediates: false])
+    }()
+
+    // RVM matting (CoreML) — nil means Vision fallback
+    private var rvmMatting: RVMMatting?
+    private var guidedFilter: GuidedFilter?
+    private var useRVM: Bool { rvmMatting != nil }
+    // Reusable mask bake buffer — avoids per-frame allocation
+    private var maskBakeBuffer: CVPixelBuffer?
 
     // Cached CIFilter instances — creating CIFilter(name:) per frame is expensive.
     private let blendWithMaskFilter: CIFilter = CIFilter(name: "CIBlendWithMask")!
@@ -89,6 +101,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     // Frame counters
     private var segFrameCounter = 0          // throttle segmentation to every 3rd frame
+    private var segmentationInFlight = false // prevent queue backlog
     private var frameCount = 0
     private var lastFrameLogTime = CFAbsoluteTimeGetCurrent()
 
@@ -203,6 +216,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             self.outputBufferPool = nil
             self.latestMaskCI = nil
             self.backgroundCI = nil
+            self.maskBakeBuffer = nil
             logger.log("applyResolutionIndex: \(index) (\(index == 1 ? "1080p" : "720p", privacy: .public))")
         }
     }
@@ -211,9 +225,22 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     func startStreaming() {
         guard streamTimer == nil else { return }
-        logger.log("startStreaming [correct-mask-bake build]")
+        logger.log("startStreaming [rvm+guided-filter build]")
 
         currentSettings = ExtensionSettings.load()
+
+        // Initialize RVM matting (falls back to Vision if model not found)
+        let resolution = currentSettings.resolution
+        rvmMatting = RVMMatting(resolution: resolution)
+        guidedFilter = GuidedFilter()
+        if rvmMatting != nil {
+            logger.log("Using RVM matting (CoreML)")
+        } else {
+            logger.log("RVM unavailable, falling back to Vision segmentation")
+        }
+        if guidedFilter != nil {
+            logger.log("Guided filter enabled")
+        }
 
         notify_register_dispatch(
             "net.fakeapps.MultiHUD.settingsChanged",
@@ -231,6 +258,8 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
                 self.outputBufferPool = nil
                 self.latestMaskCI = nil
                 self.backgroundCI = nil
+                self.maskBakeBuffer = nil
+                _ = self.rvmMatting?.switchResolution(self.currentSettings.resolution)
                 logger.log("Resolution switching to \(newIndex == 1 ? "1080p" : "720p", privacy: .public)")
                 self._streamSource.notifyActiveFormatChanged(newIndex)
             }
@@ -403,14 +432,18 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         let inputBuffer = latestPixelBuffer
         frameLock.unlock()
 
-        // Kick off async segmentation every 3rd frame (~10 fps) on a dedicated queue.
-        // The serial queue ensures at most one segmentation is in-flight at a time.
+        // Kick off async segmentation on a dedicated serial queue.
+        // Guard: skip if previous segmentation hasn't finished (prevents queue backlog → mask delay).
         segFrameCounter += 1
-        if segFrameCounter % 3 == 0, let buf = inputBuffer {
+        let shouldSegment = !segmentationInFlight && (useRVM || (segFrameCounter % 3 == 0))
+        if shouldSegment, let buf = inputBuffer {
+            segmentationInFlight = true
             let quality = currentSettings.segQuality
             segmentationQueue.async { [weak self] in
-                self?.segmentationRequest.qualityLevel = quality
-                self?.runSegmentation(on: buf)
+                guard let self else { return }
+                self.segmentationRequest.qualityLevel = quality
+                self.runSegmentation(on: buf)
+                self.streamingQueue.async { self.segmentationInFlight = false }
             }
         }
 
@@ -451,46 +484,79 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         }
     }
 
-    // Runs on segmentationQueue — processes Vision and updates latestMaskCI.
+    // Runs on segmentationQueue — produces mask via RVM (preferred) or Vision (fallback).
     private func runSegmentation(on pixelBuffer: CVPixelBuffer) {
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
-        guard (try? handler.perform([segmentationRequest])) != nil,
-              let maskBuffer = segmentationRequest.results?.first?.pixelBuffer else { return }
-
         let extent = CGRect(x: 0, y: 0, width: outputWidth, height: outputHeight)
-        var maskCI = CIImage(cvPixelBuffer: maskBuffer)
-        let sx = extent.width  / maskCI.extent.width
-        let sy = extent.height / maskCI.extent.height
-        maskCI = maskCI.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
-            .cropped(to: extent)
+        var maskCI: CIImage
 
-        // Temporal smoothing: blend 40% previous + 60% current mask to suppress edge flicker.
-        maskLock.lock()
-        let prev = latestMaskCI
-        maskLock.unlock()
-        if let prev {
-            dissolveFilter.setValue(prev,   forKey: kCIInputImageKey)
-            dissolveFilter.setValue(maskCI, forKey: kCIInputTargetImageKey)
-            dissolveFilter.setValue(0.6,    forKey: kCIInputTimeKey)
-            maskCI = dissolveFilter.outputImage?.cropped(to: extent) ?? maskCI
+        if let rvm = rvmMatting, let alpha = rvm.predict(pixelBuffer: pixelBuffer) {
+            // RVM produces a true alpha matte at model resolution — scale to output.
+            let sx = extent.width  / alpha.extent.width
+            let sy = extent.height / alpha.extent.height
+            maskCI = alpha.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
+                .cropped(to: extent)
+            // No temporal smoothing — RVM's ConvGRU provides built-in consistency.
+        } else {
+            // Vision fallback
+            let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+            guard (try? handler.perform([segmentationRequest])) != nil,
+                  let maskBuffer = segmentationRequest.results?.first?.pixelBuffer else { return }
+            maskCI = CIImage(cvPixelBuffer: maskBuffer)
+            let sx = extent.width  / maskCI.extent.width
+            let sy = extent.height / maskCI.extent.height
+            maskCI = maskCI.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
+                .cropped(to: extent)
+
+            // Temporal smoothing only for Vision (RVM has built-in temporal consistency).
+            maskLock.lock()
+            let prev = latestMaskCI
+            maskLock.unlock()
+            if let prev {
+                dissolveFilter.setValue(prev,   forKey: kCIInputImageKey)
+                dissolveFilter.setValue(maskCI, forKey: kCIInputTargetImageKey)
+                dissolveFilter.setValue(0.6,    forKey: kCIInputTimeKey)
+                maskCI = dissolveFilter.outputImage?.cropped(to: extent) ?? maskCI
+            }
         }
 
-        // Break the growing lazy filter chain by baking to a pixel buffer.
-        // Must use OneComponent8 + DeviceGray so CIBlendWithMask gets correct
-        // luminance values. BGRA with colorSpace:nil would corrupt the mask.
-        var bakedMask: CVPixelBuffer?
-        let maskAttrs: [CFString: Any] = [
-            kCVPixelBufferWidthKey:  outputWidth,
-            kCVPixelBufferHeightKey: outputHeight,
-            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_OneComponent8,
-            kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
-        ]
-        CVPixelBufferCreate(kCFAllocatorDefault, outputWidth, outputHeight,
-                            kCVPixelFormatType_OneComponent8, maskAttrs as CFDictionary, &bakedMask)
-        if let bakedMask {
-            maskBakeContext.render(maskCI, to: bakedMask, bounds: extent,
-                                   colorSpace: CGColorSpaceCreateDeviceGray())
-            maskCI = CIImage(cvPixelBuffer: bakedMask)
+        // Guided filter: refine mask edges using webcam frame as guide.
+        if let gf = guidedFilter {
+            let webcamCI = CIImage(cvPixelBuffer: pixelBuffer)
+            let sx = extent.width  / webcamCI.extent.width
+            let sy = extent.height / webcamCI.extent.height
+            let scale = max(sx, sy)
+            let scaled = webcamCI.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+            let ox = (extent.width  - scaled.extent.width)  / 2
+            let oy = (extent.height - scaled.extent.height) / 2
+            let guide = scaled
+                .transformed(by: CGAffineTransform(translationX: ox, y: oy))
+                .cropped(to: extent)
+            maskCI = gf.apply(guide: guide, mask: maskCI)
+        }
+
+        // Bake mask to pixel buffer to break lazy CIImage filter chain.
+        // Reuse buffer across frames; reallocate only on resolution change.
+        if maskBakeBuffer == nil
+            || CVPixelBufferGetWidth(maskBakeBuffer!) != outputWidth
+            || CVPixelBufferGetHeight(maskBakeBuffer!) != outputHeight {
+            let attrs: [CFString: Any] = [
+                kCVPixelBufferWidthKey:  outputWidth,
+                kCVPixelBufferHeightKey: outputHeight,
+                kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_OneComponent8,
+                kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
+            ]
+            CVPixelBufferCreate(kCFAllocatorDefault, outputWidth, outputHeight,
+                                kCVPixelFormatType_OneComponent8, attrs as CFDictionary, &maskBakeBuffer)
+        }
+        if let bakeBuffer = maskBakeBuffer {
+            do {
+                let dest = CIRenderDestination(pixelBuffer: bakeBuffer)
+                try ciContext.startTask(toRender: maskCI.cropped(to: extent), to: dest).waitUntilCompleted()
+                maskCI = CIImage(cvPixelBuffer: bakeBuffer)
+            } catch {
+                logger.log("mask bake failed: \(error.localizedDescription, privacy: .public)")
+                // Fall through with unbaked maskCI — still usable, just not materialized
+            }
         }
 
         maskLock.lock()
@@ -581,7 +647,9 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             }
         }
 
-        ciContext.render(composite, to: output)
+        // Use CIRenderDestination for async GPU pipelining (WWDC 2020).
+        let dest = CIRenderDestination(pixelBuffer: output)
+        try? ciContext.startTask(toRender: composite, to: dest)
     }
 
     private func positioned(_ image: CIImage, in extent: CGRect) -> CIImage {

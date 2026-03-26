@@ -73,9 +73,12 @@ targets:
         CODE_SIGN_ENTITLEMENTS: CameraExtension/CameraExtension.entitlements
         INFOPLIST_FILE: CameraExtension/Info.plist
         PROVISIONING_PROFILE_SPECIFIER: 7a1b1a40-d8c7-44e3-9641-535ca7b9df95
+        MTL_COMPILER_FLAGS: "-fcikernel"
+        MTLLINKER_FLAGS: "-cikernel"
     dependencies:
       - sdk: AVFoundation.framework
       - sdk: CoreMediaIO.framework
+      - sdk: CoreML.framework
       - sdk: SwiftUI.framework
       - sdk: Vision.framework
 
