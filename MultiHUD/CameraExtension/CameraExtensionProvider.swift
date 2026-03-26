@@ -64,6 +64,13 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     private var latestMaskCI: CIImage?
 
     private let ciContext = CIContext()
+    // Separate Metal context for mask baking on segmentationQueue so it doesn't
+    // block the main render pipeline on streamingQueue.
+    private let maskBakeContext = CIContext()
+
+    // Cached CIFilter instances — creating CIFilter(name:) per frame is expensive.
+    private let blendWithMaskFilter: CIFilter = CIFilter(name: "CIBlendWithMask")!
+    private let dissolveFilter:      CIFilter = CIFilter(name: "CIDissolveTransition")!
 
     // Overlay text updated by WeatherService
     var overlayText: String = "…"
@@ -75,13 +82,15 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     // Segmentation request — reused, only accessed from segmentationQueue
     private let segmentationRequest: VNGeneratePersonSegmentationRequest = {
         let req = VNGeneratePersonSegmentationRequest()
-        req.qualityLevel = .fast
+        req.qualityLevel = .balanced
         req.outputPixelFormat = kCVPixelFormatType_OneComponent8
         return req
     }()
 
     // Frame counters
     private var segFrameCounter = 0          // throttle segmentation to every 3rd frame
+    private var frameCount = 0
+    private var lastFrameLogTime = CFAbsoluteTimeGetCurrent()
 
     private var currentSettings = ExtensionSettings()
     private var settingsNotifyToken: Int32 = NOTIFY_TOKEN_INVALID
@@ -202,6 +211,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     func startStreaming() {
         guard streamTimer == nil else { return }
+        logger.log("startStreaming [correct-mask-bake build]")
 
         currentSettings = ExtensionSettings.load()
 
@@ -212,6 +222,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         ) { [weak self] _ in
             guard let self else { return }
             let oldResolution = self.currentSettings.resolution
+            let oldCameraId   = self.currentSettings.cameraId
             self.currentSettings = ExtensionSettings.load()
             let oldIndex = oldResolution == "1080p" ? 1 : 0
             let newIndex = self.currentSettings.resolution == "1080p" ? 1 : 0
@@ -222,6 +233,10 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
                 self.backgroundCI = nil
                 logger.log("Resolution switching to \(newIndex == 1 ? "1080p" : "720p", privacy: .public)")
                 self._streamSource.notifyActiveFormatChanged(newIndex)
+            }
+            if self.currentSettings.cameraId != oldCameraId {
+                logger.log("Camera ID changed, hot-swapping input")
+                self.sessionQueue.async { [weak self] in self?.switchCaptureDevice() }
             }
         }
 
@@ -260,6 +275,30 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         if let session = captureSession, !session.isRunning {
             session.startRunning()
         }
+    }
+
+    // Hot-swap the physical camera input without stopping the session.
+    private func switchCaptureDevice() {
+        guard let session = captureSession else {
+            startCaptureSession()
+            return
+        }
+        guard let newCamera = selectCaptureDevice(),
+              let newInput  = try? AVCaptureDeviceInput(device: newCamera) else {
+            logger.error("switchCaptureDevice: could not create input for new camera")
+            return
+        }
+        session.beginConfiguration()
+        for input in session.inputs {
+            if let di = input as? AVCaptureDeviceInput, di.device.hasMediaType(.video) {
+                session.removeInput(di)
+            }
+        }
+        if session.canAddInput(newInput) {
+            session.addInput(newInput)
+        }
+        session.commitConfiguration()
+        logger.log("switchCaptureDevice: now using \(newCamera.localizedName, privacy: .public)")
     }
 
     private func buildCaptureSession() -> AVCaptureSession? {
@@ -358,6 +397,8 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: - Frame emission
 
     private func emitFrame() {
+        let frameStart = CFAbsoluteTimeGetCurrent()
+
         frameLock.lock()
         let inputBuffer = latestPixelBuffer
         frameLock.unlock()
@@ -399,6 +440,15 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             discontinuity: [],
             hostTimeInNanoseconds: UInt64(timing.presentationTimeStamp.seconds * Double(NSEC_PER_SEC))
         )
+
+        // Log frame timing every 30 frames to diagnose performance.
+        frameCount += 1
+        if frameCount % 30 == 0 {
+            let elapsed = CFAbsoluteTimeGetCurrent() - frameStart
+            let fps = 30.0 / (CFAbsoluteTimeGetCurrent() - lastFrameLogTime)
+            logger.log("perf: frame=\(Int(elapsed * 1000))ms fps=\(String(format: "%.1f", fps), privacy: .public) bg=\(self.backgroundCI != nil, privacy: .public) mask=\(self.latestMaskCI != nil, privacy: .public)")
+            lastFrameLogTime = CFAbsoluteTimeGetCurrent()
+        }
     }
 
     // Runs on segmentationQueue — processes Vision and updates latestMaskCI.
@@ -412,18 +462,38 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         let sx = extent.width  / maskCI.extent.width
         let sy = extent.height / maskCI.extent.height
         maskCI = maskCI.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
-        maskCI = maskCI.applyingGaussianBlur(sigma: 3).cropped(to: extent)
+            .cropped(to: extent)
 
         // Temporal smoothing: blend 40% previous + 60% current mask to suppress edge flicker.
         maskLock.lock()
         let prev = latestMaskCI
-        if let prev,
-           let dissolve = CIFilter(name: "CIDissolveTransition") {
-            dissolve.setValue(prev,   forKey: kCIInputImageKey)
-            dissolve.setValue(maskCI, forKey: kCIInputTargetImageKey)
-            dissolve.setValue(0.6,    forKey: kCIInputTimeKey)
-            maskCI = dissolve.outputImage?.cropped(to: extent) ?? maskCI
+        maskLock.unlock()
+        if let prev {
+            dissolveFilter.setValue(prev,   forKey: kCIInputImageKey)
+            dissolveFilter.setValue(maskCI, forKey: kCIInputTargetImageKey)
+            dissolveFilter.setValue(0.6,    forKey: kCIInputTimeKey)
+            maskCI = dissolveFilter.outputImage?.cropped(to: extent) ?? maskCI
         }
+
+        // Break the growing lazy filter chain by baking to a pixel buffer.
+        // Must use OneComponent8 + DeviceGray so CIBlendWithMask gets correct
+        // luminance values. BGRA with colorSpace:nil would corrupt the mask.
+        var bakedMask: CVPixelBuffer?
+        let maskAttrs: [CFString: Any] = [
+            kCVPixelBufferWidthKey:  outputWidth,
+            kCVPixelBufferHeightKey: outputHeight,
+            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_OneComponent8,
+            kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
+        ]
+        CVPixelBufferCreate(kCFAllocatorDefault, outputWidth, outputHeight,
+                            kCVPixelFormatType_OneComponent8, maskAttrs as CFDictionary, &bakedMask)
+        if let bakedMask {
+            maskBakeContext.render(maskCI, to: bakedMask, bounds: extent,
+                                   colorSpace: CGColorSpaceCreateDeviceGray())
+            maskCI = CIImage(cvPixelBuffer: bakedMask)
+        }
+
+        maskLock.lock()
         latestMaskCI = maskCI
         maskLock.unlock()
     }
@@ -527,11 +597,10 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     }
 
     private func compositeWithMask(person: CIImage, background: CIImage, mask: CIImage) -> CIImage {
-        guard let blend = CIFilter(name: "CIBlendWithMask") else { return person }
-        blend.setValue(person,     forKey: kCIInputImageKey)
-        blend.setValue(background, forKey: kCIInputBackgroundImageKey)
-        blend.setValue(mask,       forKey: kCIInputMaskImageKey)
-        return blend.outputImage ?? person
+        blendWithMaskFilter.setValue(person,     forKey: kCIInputImageKey)
+        blendWithMaskFilter.setValue(background, forKey: kCIInputBackgroundImageKey)
+        blendWithMaskFilter.setValue(mask,       forKey: kCIInputMaskImageKey)
+        return blendWithMaskFilter.outputImage ?? person
     }
 
     private func loadBackgroundIfNeeded() {
@@ -547,9 +616,26 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             backgroundCI = nil
             return
         }
-        // Pre-scale to output dimensions once so render() can use it directly each frame.
+        // Scale to output dimensions, then bake into a pixel buffer so every frame
+        // reads pre-decoded pixels instead of re-decoding the JPEG via the lazy filter chain.
         let extent = CGRect(x: 0, y: 0, width: outputWidth, height: outputHeight)
-        backgroundCI = positioned(raw, in: extent)
+        let positionedRaw = positioned(raw, in: extent)
+        var baked: CVPixelBuffer?
+        let attrs2: [CFString: Any] = [
+            kCVPixelBufferWidthKey:  outputWidth,
+            kCVPixelBufferHeightKey: outputHeight,
+            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
+        ]
+        CVPixelBufferCreate(kCFAllocatorDefault, outputWidth, outputHeight,
+                            kCVPixelFormatType_32BGRA, attrs2 as CFDictionary, &baked)
+        if let baked {
+            ciContext.render(positionedRaw, to: baked, bounds: extent,
+                             colorSpace: CGColorSpaceCreateDeviceRGB())
+            backgroundCI = CIImage(cvPixelBuffer: baked)
+        } else {
+            backgroundCI = positionedRaw
+        }
     }
 
     private func widgetDisplayItem(_ w: WidgetConfig, now: Double, date: Date) -> WidgetDisplayItem? {

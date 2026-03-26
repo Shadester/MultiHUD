@@ -120,17 +120,7 @@ struct ContentView: View {
         .task(id: ext.state.isActive) {
             guard showPreview else { return }
             if ext.state.isActive {
-                // Retry up to 5 times with 300ms gaps — device may not be in the
-                // discovery list immediately after the extension activation callback.
-                for attempt in 0..<6 {
-                    if attempt > 0 {
-                        try? await Task.sleep(nanoseconds: 300_000_000)
-                        guard !Task.isCancelled else { return }
-                    }
-                    if startPreview() { return }
-                    previewLogger.log("startPreview attempt \(attempt) failed, retrying…")
-                }
-                previewLogger.log("startPreview: all attempts failed")
+                await startPreviewWithRetry()
             } else {
                 stopPreview()
             }
@@ -138,9 +128,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.wasConnectedNotification)) { notif in
             guard showPreview,
                   let device = notif.object as? AVCaptureDevice,
-                  device.localizedName == "MultiHUD",
-                  ext.state.isActive else { return }
-            _ = startPreview()
+                  device.localizedName == "MultiHUD" else { return }
+            stopPreview()
+            Task { await startPreviewWithRetry() }
         }
     }
 
@@ -399,6 +389,20 @@ struct ContentView: View {
 
     // MARK: - Preview
 
+    private func startPreviewWithRetry() async {
+        // CMIOExtension device may take several seconds to appear in the discovery
+        // list after activation or reinstall — retry with 500ms gaps up to 6s total.
+        for attempt in 0..<12 {
+            if attempt > 0 {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                guard !Task.isCancelled else { return }
+            }
+            if startPreview() { return }
+            previewLogger.log("startPreview attempt \(attempt) failed, retrying…")
+        }
+        previewLogger.log("startPreview: all attempts exhausted")
+    }
+
     @discardableResult
     private func startPreview() -> Bool {
         guard previewSession == nil else {
@@ -472,7 +476,7 @@ private struct PositionGridPicker: View {
                                     .frame(width: 5, height: 5)
                                     .frame(width: 26, height: 18)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.borderless)
                             .contentShape(Rectangle())
                             .background(
                                 RoundedRectangle(cornerRadius: 4)
