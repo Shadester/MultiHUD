@@ -35,7 +35,7 @@ Team ID: `HGS3GTCF73`
 
 ## Tech stack
 
-- Swift 5, macOS 26.2+
+- Swift 5, macOS 15.0+
 - SwiftUI (host app)
 - CoreMediaIO / CMIOExtension (virtual camera)
 - WeatherKit + CoreLocation (host app only — extension reads weather from shared file)

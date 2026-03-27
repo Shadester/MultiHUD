@@ -519,21 +519,6 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             }
         }
 
-        // Guided filter: refine mask edges using webcam frame as guide.
-        if let gf = guidedFilter {
-            let webcamCI = CIImage(cvPixelBuffer: pixelBuffer)
-            let sx = extent.width  / webcamCI.extent.width
-            let sy = extent.height / webcamCI.extent.height
-            let scale = max(sx, sy)
-            let scaled = webcamCI.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-            let ox = (extent.width  - scaled.extent.width)  / 2
-            let oy = (extent.height - scaled.extent.height) / 2
-            let guide = scaled
-                .transformed(by: CGAffineTransform(translationX: ox, y: oy))
-                .cropped(to: extent)
-            maskCI = gf.apply(guide: guide, mask: maskCI)
-        }
-
         // Bake mask to pixel buffer to break lazy CIImage filter chain.
         // Reuse buffer across frames; reallocate only on resolution change.
         if maskBakeBuffer == nil
@@ -611,8 +596,15 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
         // Grab the latest async segmentation mask (may be nil for first few frames).
         maskLock.lock()
-        let mask = latestMaskCI
+        let rawMask = latestMaskCI
         maskLock.unlock()
+
+        // Apply guided filter using the current webcam frame as guide.
+        // Running at render time (not in runSegmentation) ensures edges always align to the
+        // frame being displayed, not the stale frame that was fed to RVM inference.
+        let mask: CIImage? = guidedFilter.flatMap { gf in
+            rawMask.map { gf.apply(guide: webcamLayer, mask: $0) }
+        } ?? rawMask
 
         // Apply virtual background or blur via person segmentation mask.
         let baseLayer: CIImage

@@ -11,7 +11,7 @@ A macOS app that overlays live data onto a virtual camera feed — inspired by [
   - **Clock** — live wall clock with timezone abbreviation
   - **Meeting timer** — countup stopwatch, start/reset from the host app or menu bar
   - **Countdown** — counts down to a target clock time you set; stays at 0:00 when reached
-- **Virtual background** — pick any image (JPEG, PNG, HEIC, …); the extension segments you using Vision and composites you over it each frame
+- **Virtual background** — pick any image (JPEG, PNG, HEIC, …); the extension segments you using Robust Video Matting (CoreML, Neural Engine) with a Vision fallback, and composites you over it each frame
 - **Blur background** — blur your real background without a custom image
 - **Dynamic resolution** — switch between 720p and 1080p live without reinstalling the extension
 - **Camera source selection** — choose which physical camera to use when multiple cameras are available
@@ -20,7 +20,7 @@ A macOS app that overlays live data onto a virtual camera feed — inspired by [
 
 ## Requirements
 
-- macOS 26.2+
+- macOS 15.0+
 - Apple Developer account with **WeatherKit** and **System Extension** capabilities enabled for `net.fakeapps.MultiHUD`
 
 ## Build & Run
@@ -101,9 +101,9 @@ The host app fetches weather via WeatherKit and writes it to a shared app group 
 
 ## Tech Stack
 
-- Swift, SwiftUI — macOS 26.2+
+- Swift, SwiftUI — macOS 15.0+
 - CoreMediaIO / CMIOExtension (virtual camera)
 - WeatherKit + CoreLocation
 - AVFoundation (webcam capture)
-- Vision (`VNGeneratePersonSegmentationRequest`, virtual background + blur)
-- CoreImage / CIFilter (compositing pipeline)
+- CoreML / Vision — Robust Video Matting (Neural Engine) for person segmentation, Vision as fallback
+- CoreImage / CIFilter + Metal — compositing pipeline with guided image filter for edge refinement
