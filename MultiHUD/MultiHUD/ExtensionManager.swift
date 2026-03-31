@@ -58,6 +58,9 @@ class ExtensionManager: NSObject {
     }
 
     var state: State = .unknown
+    /// True only when the extension was freshly approved by the user in this session.
+    /// Remains false on normal re-activations so the host app doesn't relaunch unnecessarily.
+    private(set) var justInstalled = false
 
     /// Activates (or re-activates after an update) the extension. Safe to call multiple times.
     func activate() {
@@ -117,6 +120,7 @@ extension ExtensionManager: OSSystemExtensionRequestDelegate {
     }
 
     func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
+        justInstalled = true
         state = .approvalNeeded
     }
 

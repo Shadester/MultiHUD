@@ -31,6 +31,7 @@ internal struct ExtensionSettings {
     var resolution: String = "720p"
     var cameraId: String = ""
     var widgets: [WidgetConfig] = []
+    var maskSharpening: Double = 1.0
 
     /// Loads settings from the shared app group container.
     static func load() -> ExtensionSettings {
@@ -49,9 +50,10 @@ internal struct ExtensionSettings {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return s
         }
-        s.blurBackground = json["blurBackground"] as? Bool ?? false
-        s.resolution     = json["resolution"]     as? String ?? "720p"
-        s.cameraId       = json["cameraId"]       as? String ?? ""
+        s.blurBackground   = json["blurBackground"]  as? Bool   ?? false
+        s.resolution       = json["resolution"]      as? String ?? "720p"
+        s.cameraId         = json["cameraId"]        as? String ?? ""
+        s.maskSharpening   = json["maskSharpening"]  as? Double ?? 1.0
         s.segQuality = {
             switch json["segQuality"] as? String {
             case "accurate": return .accurate

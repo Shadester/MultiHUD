@@ -117,10 +117,24 @@ struct ContentView: View {
                 cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
             }
         }
+        .onChange(of: cameraStatus) { _, newStatus in
+            // When the user grants camera access (via System Settings or in-app dialog),
+            // trigger preview immediately rather than waiting for the 2-second safety net.
+            if newStatus == .authorized, showPreview, ext.state.isActive, previewSession == nil {
+                Task { await startPreviewWithRetry() }
+            }
+        }
         .task(id: ext.state.isActive) {
             guard showPreview else { return }
             if ext.state.isActive {
-                await startPreviewWithRetry()
+                if ext.justInstalled {
+                    // Fresh install: AVCaptureDevice.DiscoverySession won't see the newly
+                    // registered virtual camera until the host app process is restarted.
+                    // This is a documented macOS CMIOExtension limitation.
+                    relaunchApp()
+                } else {
+                    await startPreviewWithRetry()
+                }
             } else {
                 stopPreview()
             }
@@ -259,6 +273,15 @@ struct ContentView: View {
                 }
                 .onChange(of: settings.segQuality) { _, _ in settings.save() }
 
+                HStack {
+                    Text("Mask tightness")
+                    Slider(value: s.maskSharpening, in: 1.0...3.0, step: 0.1)
+                        .onChange(of: settings.maskSharpening) { _, _ in settings.save() }
+                    Text(String(format: "%.1f", settings.maskSharpening))
+                        .monospacedDigit()
+                        .frame(width: 28, alignment: .trailing)
+                }
+
                 Text("After installing, select **MultiHUD** as your camera in Zoom, Meet, or any video app.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -360,7 +383,17 @@ struct ContentView: View {
     private func requestCameraAccess() async {
         let granted = await AVCaptureDevice.requestAccess(for: .video)
         cameraStatus = granted ? .authorized : .denied
-        if granted { cameras = loadCameras() }
+        if granted {
+            cameras = loadCameras()
+            if showPreview, ext.state.isActive, previewSession == nil {
+                await startPreviewWithRetry()
+            }
+        }
+    }
+
+    private func relaunchApp() {
+        NSWorkspace.shared.open(Bundle.main.bundleURL)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NSApp.terminate(nil) }
     }
 
     private func loadCameras() -> [AVCaptureDevice] {

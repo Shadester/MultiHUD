@@ -27,6 +27,10 @@ final class AppSettings {
     var blurBackground: Bool = false
     var segQuality: String = "fast"
     var resolution: String = "720p"
+    /// Gamma exponent applied to the alpha mask after guided-filter refinement.
+    /// 1.0 = no effect; higher values push uncertain boundary pixels toward transparent,
+    /// tightening the mask and reducing real-background bleed-through.
+    var maskSharpening: Double = 1.0
 
     // MARK: Widgets
     var opacity: Double = 1.0
@@ -59,11 +63,12 @@ final class AppSettings {
     }
 
     func apply(_ json: [String: Any]) {
-        cameraId       = json["cameraId"]       as? String ?? ""
-        blurBackground = json["blurBackground"] as? Bool   ?? false
-        segQuality     = json["segQuality"]     as? String ?? "fast"
-        resolution     = json["resolution"]     as? String ?? "720p"
-        opacity        = json["opacity"]        as? Double ?? 1.0
+        cameraId        = json["cameraId"]        as? String ?? ""
+        blurBackground  = json["blurBackground"]  as? Bool   ?? false
+        segQuality      = json["segQuality"]      as? String ?? "fast"
+        resolution      = json["resolution"]      as? String ?? "720p"
+        opacity         = json["opacity"]         as? Double ?? 1.0
+        maskSharpening  = json["maskSharpening"]  as? Double ?? 1.0
 
         guard let arr = json["widgets"] as? [[String: Any]] else { return }
         for w in arr {
@@ -97,12 +102,13 @@ final class AppSettings {
              "endsAt": countdownEndsAt],
         ]
         return [
-            "cameraId":       cameraId,
-            "blurBackground": blurBackground,
-            "segQuality":     segQuality,
-            "resolution":     resolution,
-            "opacity":        opacity,
-            "widgets":        widgets,
+            "cameraId":        cameraId,
+            "blurBackground":  blurBackground,
+            "segQuality":      segQuality,
+            "resolution":      resolution,
+            "opacity":         opacity,
+            "maskSharpening":  maskSharpening,
+            "widgets":         widgets,
         ]
     }
 
