@@ -55,7 +55,7 @@ struct ExtensionSettingsTests {
         let s = ExtensionSettings.load(from: url)
 
         #expect(s.blurBackground == false)
-        #expect(s.segQuality == .fast)
+        #expect(s.segQuality == .balanced)
         #expect(s.opacity == 1.0)
         #expect(s.widgets.isEmpty)
     }
@@ -80,7 +80,7 @@ struct ExtensionSettingsTests {
             ("accurate", .accurate),
             ("balanced", .balanced),
             ("fast",     .fast),
-            ("unknown",  .fast),
+            ("unknown",  .balanced),
         ]
         for (input, expected) in cases {
             let url = try writeTempJSON(["segQuality": input])

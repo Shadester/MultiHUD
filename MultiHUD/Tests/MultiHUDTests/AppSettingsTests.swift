@@ -62,7 +62,7 @@ struct AppSettingsTests {
 
         #expect(s.cameraId == "")
         #expect(s.blurBackground == false)
-        #expect(s.segQuality == "fast")
+        #expect(s.segQuality == "balanced")
         #expect(s.resolution == "720p")
         #expect(s.opacity == 1.0)
         // weatherEnabled unchanged since no "widgets" key
