@@ -57,8 +57,8 @@ internal struct ExtensionSettings {
         s.segQuality = {
             switch json["segQuality"] as? String {
             case "accurate": return .accurate
-            case "balanced": return .balanced
-            default:         return .fast
+            case "fast":     return .fast
+            default:         return .balanced
             }
         }()
         s.opacity = json["opacity"] as? Double ?? 1.0
