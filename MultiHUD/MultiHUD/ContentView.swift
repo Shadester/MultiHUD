@@ -52,6 +52,8 @@ struct ContentView: View {
     @State private var cameras: [AVCaptureDevice] = []
     @State private var hasBackground = false
     @State private var showBackgroundPicker = false
+    @State private var activelyUsingRVM: Bool? = nil
+    @State private var rvmFailureReason: String? = nil
     @Environment(\.scenePhase) private var scenePhase
     @State private var previewSession: AVCaptureSession?
 
@@ -111,6 +113,7 @@ struct ContentView: View {
             hasBackground = sharedURL("background.jpg").map {
                 FileManager.default.fileExists(atPath: $0.path)
             } ?? false
+            readCamStatus()
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
@@ -127,6 +130,7 @@ struct ContentView: View {
         .task(id: ext.state.isActive) {
             guard showPreview else { return }
             if ext.state.isActive {
+                readCamStatus()
                 if ext.justInstalled {
                     // Fresh install: AVCaptureDevice.DiscoverySession won't see the newly
                     // registered virtual camera until the host app process is restarted.
@@ -266,12 +270,43 @@ struct ContentView: View {
                 }
                 .onChange(of: settings.resolution) { _, _ in settings.save() }
 
-                Picker("Segmentation", selection: s.segQuality) {
-                    Text("Fast (recommended)").tag("fast")
-                    Text("Balanced").tag("balanced")
-                    Text("Accurate").tag("accurate")
+                Picker("Engine", selection: s.useRVM) {
+                    Text("RVM").tag(true)
+                    Text("Vision").tag(false)
                 }
-                .onChange(of: settings.segQuality) { _, _ in settings.save() }
+                .pickerStyle(.segmented)
+                .onChange(of: settings.useRVM) { _, _ in
+                    settings.save()
+                    // Allow extension time to apply the change and write camstatus.json
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { readCamStatus() }
+                }
+
+                if let active = activelyUsingRVM {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(active ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                        if active {
+                            Text("Using RVM matting").foregroundStyle(.secondary)
+                        } else {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Using Vision segmentation").foregroundStyle(.secondary)
+                                if let reason = rvmFailureReason {
+                                    Text(reason).font(.caption).foregroundStyle(.tertiary)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !settings.useRVM {
+                    Picker("Quality", selection: s.segQuality) {
+                        Text("Fast").tag("fast")
+                        Text("Balanced (recommended)").tag("balanced")
+                        Text("Accurate").tag("accurate")
+                    }
+                    .onChange(of: settings.segQuality) { _, _ in settings.save() }
+                }
 
                 Text("After installing, select **MultiHUD** as your camera in Zoom, Meet, or any video app.")
                     .font(.callout)
@@ -370,6 +405,15 @@ struct ContentView: View {
     }
 
     // MARK: - Camera access
+
+    private func readCamStatus() {
+        guard let url = sharedURL("camstatus.json"),
+              let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return }
+        activelyUsingRVM = json["usingRVM"] as? Bool
+        rvmFailureReason = json["rvmFailureReason"] as? String
+    }
 
     private func requestCameraAccess() async {
         let granted = await AVCaptureDevice.requestAccess(for: .video)

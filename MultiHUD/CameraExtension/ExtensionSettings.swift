@@ -26,10 +26,11 @@ internal struct WidgetConfig {
 
 internal struct ExtensionSettings {
     var blurBackground: Bool = false
-    var segQuality: VNGeneratePersonSegmentationRequest.QualityLevel = .fast
+    var segQuality: VNGeneratePersonSegmentationRequest.QualityLevel = .balanced
     var opacity: Double = 1.0
     var resolution: String = "720p"
     var cameraId: String = ""
+    var useRVM: Bool = true
     var widgets: [WidgetConfig] = []
 
     /// Loads settings from the shared app group container.
@@ -52,6 +53,7 @@ internal struct ExtensionSettings {
         s.blurBackground = json["blurBackground"] as? Bool   ?? false
         s.resolution     = json["resolution"]     as? String ?? "720p"
         s.cameraId       = json["cameraId"]       as? String ?? ""
+        s.useRVM         = json["useRVM"]         as? Bool   ?? true
         s.segQuality = {
             switch json["segQuality"] as? String {
             case "accurate": return .accurate

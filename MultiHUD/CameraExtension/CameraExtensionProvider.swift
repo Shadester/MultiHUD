@@ -229,17 +229,35 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
         currentSettings = ExtensionSettings.load()
 
-        // Initialize RVM matting (falls back to Vision if model not found)
+        // Initialize RVM matting (or Vision-only if user disabled RVM or model not found)
         let resolution = currentSettings.resolution
-        rvmMatting = RVMMatting(resolution: resolution)
+        rvmMatting = currentSettings.useRVM ? RVMMatting(resolution: resolution) : nil
         guidedFilter = GuidedFilter()
+
+        // Determine why RVM failed to load (if applicable) for the host app UI.
+        var rvmFailureReason: String? = nil
+        if currentSettings.useRVM, rvmMatting == nil {
+            let modelName = resolution == "1080p"
+                ? "rvm_mobilenetv3_1920x1080_s0.25_fp16"
+                : "rvm_mobilenetv3_1280x720_s0.375_fp16"
+            let found = Bundle(for: CameraExtensionDeviceSource.self)
+                .url(forResource: modelName, withExtension: "mlmodelc") != nil
+                || Bundle(for: CameraExtensionDeviceSource.self)
+                .url(forResource: modelName, withExtension: "mlmodel") != nil
+            rvmFailureReason = found ? "Failed to load model" : "Model not bundled"
+        }
         if rvmMatting != nil {
             logger.log("Using RVM matting (CoreML)")
         } else {
             logger.log("RVM unavailable, falling back to Vision segmentation")
         }
-        if guidedFilter != nil {
-            logger.log("Guided filter enabled")
+
+        // Write camstatus.json so the host app can show which engine is active.
+        var camStatus: [String: Any] = ["usingRVM": rvmMatting != nil]
+        if let reason = rvmFailureReason { camStatus["rvmFailureReason"] = reason }
+        if let url = sharedContainerURL("camstatus.json"),
+           let data = try? JSONSerialization.data(withJSONObject: camStatus) {
+            try? data.write(to: url, options: .atomic)
         }
 
         notify_register_dispatch(
@@ -250,6 +268,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             guard let self else { return }
             let oldResolution = self.currentSettings.resolution
             let oldCameraId   = self.currentSettings.cameraId
+            let oldUseRVM     = self.currentSettings.useRVM
             self.currentSettings = ExtensionSettings.load()
             let oldIndex = oldResolution == "1080p" ? 1 : 0
             let newIndex = self.currentSettings.resolution == "1080p" ? 1 : 0
@@ -262,6 +281,22 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
                 _ = self.rvmMatting?.switchResolution(self.currentSettings.resolution)
                 logger.log("Resolution switching to \(newIndex == 1 ? "1080p" : "720p", privacy: .public)")
                 self._streamSource.notifyActiveFormatChanged(newIndex)
+            }
+            if self.currentSettings.useRVM != oldUseRVM {
+                // Engine toggle changed — reinitialise segmentation.
+                self.latestMaskCI = nil
+                self.rvmMatting = self.currentSettings.useRVM
+                    ? RVMMatting(resolution: self.currentSettings.resolution)
+                    : nil
+                var camStatus: [String: Any] = ["usingRVM": self.rvmMatting != nil]
+                if self.currentSettings.useRVM, self.rvmMatting == nil {
+                    camStatus["rvmFailureReason"] = "Failed to load model"
+                }
+                if let url = sharedContainerURL("camstatus.json"),
+                   let data = try? JSONSerialization.data(withJSONObject: camStatus) {
+                    try? data.write(to: url, options: .atomic)
+                }
+                logger.log("Engine switched: RVM=\(self.rvmMatting != nil, privacy: .public)")
             }
             if self.currentSettings.cameraId != oldCameraId {
                 logger.log("Camera ID changed, hot-swapping input")

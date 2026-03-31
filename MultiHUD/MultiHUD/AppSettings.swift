@@ -25,8 +25,9 @@ final class AppSettings {
     // MARK: General
     var cameraId: String = ""
     var blurBackground: Bool = false
-    var segQuality: String = "fast"
+    var segQuality: String = "balanced"
     var resolution: String = "720p"
+    var useRVM: Bool = true
 
     // MARK: Widgets
     var opacity: Double = 1.0
@@ -61,9 +62,10 @@ final class AppSettings {
     func apply(_ json: [String: Any]) {
         cameraId       = json["cameraId"]       as? String ?? ""
         blurBackground = json["blurBackground"] as? Bool   ?? false
-        segQuality     = json["segQuality"]     as? String ?? "fast"
+        segQuality     = json["segQuality"]     as? String ?? "balanced"
         resolution     = json["resolution"]     as? String ?? "720p"
         opacity        = json["opacity"]        as? Double ?? 1.0
+        useRVM         = json["useRVM"]         as? Bool   ?? true
 
         guard let arr = json["widgets"] as? [[String: Any]] else { return }
         for w in arr {
@@ -102,6 +104,7 @@ final class AppSettings {
             "segQuality":     segQuality,
             "resolution":     resolution,
             "opacity":        opacity,
+            "useRVM":         useRVM,
             "widgets":        widgets,
         ]
     }
