@@ -605,14 +605,13 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         let refinedMask = guidedFilter.flatMap { gf in
             rawMask.map { gf.apply(guide: webcamLayer, mask: $0) }
         } ?? rawMask
-        // Optional mask sharpening: gamma > 1 pushes uncertain mid-alpha boundary pixels toward
-        // transparent while leaving high-confidence person pixels (≈1.0) nearly unchanged.
-        // Reduces real-background bleed-through at person edges.
-        // power=1 (default) = no effect; power=2: alpha 0.9→0.81, 0.5→0.25, 0.2→0.04
-        let sharpening = settings.maskSharpening
-        let mask: CIImage? = (sharpening > 1.0)
-            ? refinedMask.map { $0.applyingFilter("CIGammaAdjust", parameters: ["inputPower": sharpening]) }
-            : refinedMask
+        // Erode the mask slightly to cut away fringe pixels where the real background
+        // bleeds through into the virtual background. A 5px kernel is subtle enough to
+        // preserve hair/edge detail while eliminating most bleed-through.
+        let mask: CIImage? = refinedMask.map {
+            $0.applyingFilter("CIMorphologyRectangleMinimum",
+                              parameters: ["inputWidth": 5, "inputHeight": 5])
+        }
 
         // Apply virtual background or blur via person segmentation mask.
         let baseLayer: CIImage

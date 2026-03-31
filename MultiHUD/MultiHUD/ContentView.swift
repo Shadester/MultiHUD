@@ -273,15 +273,6 @@ struct ContentView: View {
                 }
                 .onChange(of: settings.segQuality) { _, _ in settings.save() }
 
-                HStack {
-                    Text("Mask tightness")
-                    Slider(value: s.maskSharpening, in: 1.0...3.0, step: 0.1)
-                        .onChange(of: settings.maskSharpening) { _, _ in settings.save() }
-                    Text(String(format: "%.1f", settings.maskSharpening))
-                        .monospacedDigit()
-                        .frame(width: 28, alignment: .trailing)
-                }
-
                 Text("After installing, select **MultiHUD** as your camera in Zoom, Meet, or any video app.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -392,8 +383,11 @@ struct ContentView: View {
     }
 
     private func relaunchApp() {
-        NSWorkspace.shared.open(Bundle.main.bundleURL)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NSApp.terminate(nil) }
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL,
+                                           configuration: config) { _, _ in }
+        NSApp.terminate(nil)
     }
 
     private func loadCameras() -> [AVCaptureDevice] {
