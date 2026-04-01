@@ -9,7 +9,7 @@ import Vision
 // MARK: - Extension Settings types
 
 internal enum OverlayPosition: String {
-    case bottomLeft, bottomRight, topLeft, topRight, bottomCenter
+    case bottomLeft, bottomRight, topLeft, topRight, bottomCenter, topCenter
 }
 
 internal enum WidgetType: String {

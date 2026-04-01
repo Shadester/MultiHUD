@@ -61,11 +61,14 @@ jobs:
       - name: Archive
         working-directory: MultiHUD
         run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
           xcodebuild archive \
             -scheme MultiHUD \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/MultiHUD.xcarchive" \
-            CODE_SIGN_STYLE=Manual
+            CODE_SIGN_STYLE=Manual \
+            MARKETING_VERSION="$VERSION"
 
       - name: Export app
         run: |

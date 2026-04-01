@@ -94,6 +94,64 @@ struct AppSettingsTests {
         #expect(s.countdownEndsAt == 222.0)
     }
 
+    // MARK: - nextHalfHour
+
+    @Test("nextHalfHour — minute below 30 rounds up to :30 same hour")
+    func nextHalfHourBelowThirty() throws {
+        let cal = Calendar.current
+        let now    = try #require(cal.date(from: DateComponents(year: 2026, month: 3, day: 20, hour: 10, minute: 15)))
+        let result = AppSettings.nextHalfHour(relativeTo: now)
+        let comps  = cal.dateComponents([.year, .month, .day, .hour, .minute], from: result)
+        #expect(comps.hour == 10)
+        #expect(comps.minute == 30)
+    }
+
+    @Test("nextHalfHour — minute above 30 rolls to :00 next hour")
+    func nextHalfHourAboveThirty() throws {
+        let cal = Calendar.current
+        let now    = try #require(cal.date(from: DateComponents(year: 2026, month: 3, day: 20, hour: 10, minute: 45)))
+        let result = AppSettings.nextHalfHour(relativeTo: now)
+        let comps  = cal.dateComponents([.year, .month, .day, .hour, .minute], from: result)
+        #expect(comps.hour == 11)
+        #expect(comps.minute == 0)
+    }
+
+    @Test("nextHalfHour — minute exactly 30 rolls to :00 next hour")
+    func nextHalfHourAtThirty() throws {
+        let cal = Calendar.current
+        let now    = try #require(cal.date(from: DateComponents(year: 2026, month: 3, day: 20, hour: 10, minute: 30)))
+        let result = AppSettings.nextHalfHour(relativeTo: now)
+        let comps  = cal.dateComponents([.year, .month, .day, .hour, .minute], from: result)
+        #expect(comps.hour == 11)
+        #expect(comps.minute == 0)
+    }
+
+    @Test("nextHalfHour — 23:45 rolls to midnight next day")
+    func nextHalfHourMidnightRollover() throws {
+        let cal = Calendar.current
+        let now    = try #require(cal.date(from: DateComponents(year: 2026, month: 3, day: 20, hour: 23, minute: 45)))
+        let result = AppSettings.nextHalfHour(relativeTo: now)
+        let comps  = cal.dateComponents([.year, .month, .day, .hour, .minute], from: result)
+        #expect(comps.month == 3)
+        #expect(comps.day == 21)
+        #expect(comps.hour == 0)
+        #expect(comps.minute == 0)
+    }
+
+    @Test("nextHalfHour — month rollover (Jan 31 23:45 → Feb 1 00:00)")
+    func nextHalfHourMonthRollover() throws {
+        let cal = Calendar.current
+        let now    = try #require(cal.date(from: DateComponents(year: 2026, month: 1, day: 31, hour: 23, minute: 45)))
+        let result = AppSettings.nextHalfHour(relativeTo: now)
+        let comps  = cal.dateComponents([.year, .month, .day, .hour, .minute], from: result)
+        #expect(comps.month == 2)
+        #expect(comps.day == 1)
+        #expect(comps.hour == 0)
+        #expect(comps.minute == 0)
+    }
+
+    // MARK: - nextOccurrence
+
     @Test("nextOccurrence — future time returns same day")
     func nextOccurrenceFuture() throws {
         let cal = Calendar.current

@@ -39,7 +39,7 @@ private enum WidgetDisplayItem {
     case weatherRaw(String)
     case clock(time: String, tz: String)
     case countup(String)
-    case countdown(String)
+    case countdown(String, overdue: Bool)
 }
 
 // MARK: - Device Source
@@ -757,7 +757,12 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             return .countup(formatDuration(now - w.startedAt))
         case .countdown:
             guard w.endsAt > 0 else { return nil }
-            return .countdown(formatDuration(max(0, w.endsAt - now)))
+            let remaining = w.endsAt - now
+            if remaining >= 0 {
+                return .countdown(formatDuration(remaining), overdue: false)
+            } else {
+                return .countdown("-" + formatDuration(-remaining), overdue: true)
+            }
         }
     }
 
@@ -799,6 +804,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         case .topLeft:       x = inset;                               y = canvasSize.height - ih - inset
         case .topRight:      x = canvasSize.width  - iw - inset;     y = canvasSize.height - ih - inset
         case .bottomCenter:  x = (canvasSize.width - iw) / 2;        y = inset
+        case .topCenter:     x = (canvasSize.width - iw) / 2;        y = canvasSize.height - ih - inset
         }
 
         return image.transformed(by: CGAffineTransform(translationX: x, y: y))
@@ -849,12 +855,14 @@ private struct OverlayPillView: View {
                 Text(elapsed)
                     .font(.system(size: 16, weight: .semibold, design: .monospaced))
             }
-        case .countdown(let remaining):
+        case .countdown(let text, let overdue):
             HStack(spacing: 4) {
                 Image(systemName: "hourglass.tophalf.filled")
                     .font(.system(size: 14, weight: .medium))
-                Text(remaining)
+                    .foregroundStyle(overdue ? Color.red : Color.white)
+                Text(text)
                     .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(overdue ? Color.red : Color.white)
             }
         }
     }

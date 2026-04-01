@@ -41,7 +41,7 @@ final class AppSettings {
     var countdownEnabled: Bool = false
     var countdownPosition: String = "bottomLeft"
     /// Target end time as a clock time (hour + minute). Not persisted — only `countdownEndsAt` is.
-    var countdownEndTime: Date = Date().addingTimeInterval(1800)
+    var countdownEndTime: Date = AppSettings.nextHalfHour()
     var countdownEndsAt: Double = 0
 
     // MARK: - Init
@@ -156,5 +156,20 @@ final class AppSettings {
         comps.second = 0
         // Returns today's occurrence if still in the future; tomorrow's otherwise.
         return cal.nextDate(after: now - 1, matching: comps, matchingPolicy: .nextTime) ?? time
+    }
+
+    /// Returns the next upcoming :00 or :30 mark from now.
+    static func nextHalfHour(relativeTo now: Date = Date()) -> Date {
+        let cal = Calendar.current
+        var comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        let minute = comps.minute ?? 0
+        if minute < 30 {
+            comps.minute = 30
+        } else {
+            comps.minute = 0
+            comps.hour = (comps.hour ?? 0) + 1
+        }
+        comps.second = 0
+        return cal.date(from: comps) ?? now.addingTimeInterval(1800)
     }
 }

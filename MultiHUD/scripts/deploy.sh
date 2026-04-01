@@ -17,12 +17,14 @@ ZIP_PATH="$BUILD_DIR/$APP_NAME.zip"
 echo "==> Generating Xcode project..."
 xcodegen generate
 
-echo "==> Building $SCHEME ($CONFIGURATION)..."
+VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+echo "==> Building $SCHEME ($CONFIGURATION) version $VERSION..."
 xcodebuild \
   -scheme "$SCHEME" \
   -configuration "$CONFIGURATION" \
   -derivedDataPath "$BUILD_DIR/xcode" \
   SYMROOT="$BUILD_DIR" \
+  MARKETING_VERSION="$VERSION" \
   build
 
 APP_PATH="$BUILD_DIR/$CONFIGURATION/$APP_NAME.app"

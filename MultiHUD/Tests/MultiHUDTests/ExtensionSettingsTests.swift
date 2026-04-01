@@ -106,6 +106,23 @@ struct ExtensionSettingsTests {
         #expect(w.endsAt == 0.0)
     }
 
+    @Test("topCenter and bottomCenter positions load correctly")
+    func centerPositions() throws {
+        let json: [String: Any] = [
+            "widgets": [
+                ["type": "clock",   "position": "topCenter",    "enabled": true],
+                ["type": "weather", "position": "bottomCenter", "enabled": true],
+            ] as [[String: Any]]
+        ]
+        let url = try writeTempJSON(json)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let s = ExtensionSettings.load(from: url)
+        #expect(s.widgets.count == 2)
+        #expect(s.widgets.first { $0.type == .clock }?.position == .topCenter)
+        #expect(s.widgets.first { $0.type == .weather }?.position == .bottomCenter)
+    }
+
     @Test("Invalid widget type or position is filtered out")
     func invalidWidgetFiltered() throws {
         let json: [String: Any] = [

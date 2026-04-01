@@ -313,6 +313,15 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                Section {
+                    Text("MultiHUD v\(version)")
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .font(.footnote)
+                }
+            }
         }
         .formStyle(.grouped)
         .fileImporter(
@@ -528,7 +537,7 @@ private struct PositionGridPicker: View {
 
     private let cells: [Cell] = [
         Cell(id: "topLeft",      row: 0, col: 0),
-        Cell(id: "",             row: 0, col: 1), // gap — no topCenter
+        Cell(id: "topCenter",    row: 0, col: 1),
         Cell(id: "topRight",     row: 0, col: 2),
         Cell(id: "bottomLeft",   row: 1, col: 0),
         Cell(id: "bottomCenter", row: 1, col: 1),
