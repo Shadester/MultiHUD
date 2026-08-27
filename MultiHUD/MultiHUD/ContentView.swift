@@ -463,6 +463,10 @@ struct ContentView: View {
         guard let data = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else { return }
         try? data.write(to: dest)
         hasBackground = true
+        if settings.blurBackground {
+            settings.blurBackground = false
+            settings.save()
+        }
     }
 
     private func clearBackground() {
@@ -526,6 +530,20 @@ struct ContentView: View {
 
 // MARK: - PositionGridPicker
 
+private extension String {
+    var positionLabel: String {
+        switch self {
+        case "topLeft":      return "Top Left"
+        case "topCenter":    return "Top Center"
+        case "topRight":     return "Top Right"
+        case "bottomLeft":   return "Bottom Left"
+        case "bottomCenter": return "Bottom Center"
+        case "bottomRight":  return "Bottom Right"
+        default:             return self
+        }
+    }
+}
+
 private struct PositionGridPicker: View {
     @Binding var position: String
 
@@ -562,6 +580,7 @@ private struct PositionGridPicker: View {
                                     .frame(width: 26, height: 18)
                             }
                             .buttonStyle(.borderless)
+                            .help(cell.id.positionLabel)
                             .contentShape(Rectangle())
                             .background(
                                 RoundedRectangle(cornerRadius: 4)

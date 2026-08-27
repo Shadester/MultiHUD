@@ -468,9 +468,11 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         frameLock.unlock()
 
         // Kick off async segmentation on a dedicated serial queue.
-        // Guard: skip if previous segmentation hasn't finished (prevents queue backlog → mask delay).
+        // Guard: skip if previous segmentation hasn't finished (prevents queue backlog → mask delay),
+        // and skip entirely when nothing needs a mask (no virtual background, blur off).
         segFrameCounter += 1
-        let shouldSegment = !segmentationInFlight && (useRVM || (segFrameCounter % 3 == 0))
+        let maskNeeded = backgroundCI != nil || currentSettings.blurBackground
+        let shouldSegment = maskNeeded && !segmentationInFlight && (useRVM || (segFrameCounter % 3 == 0))
         if shouldSegment, let buf = inputBuffer {
             segmentationInFlight = true
             let quality = currentSettings.segQuality

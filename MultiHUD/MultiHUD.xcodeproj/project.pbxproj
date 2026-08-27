@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -247,6 +247,8 @@
 				2026650C534741585C75F367 /* PBXTargetDependency */,
 			);
 			name = MultiHUDTests;
+			packageProductDependencies = (
+			);
 			productName = MultiHUDTests;
 			productReference = 9F2AFCAB2619FDF3EFFA620E /* MultiHUDTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -263,6 +265,8 @@
 			dependencies = (
 			);
 			name = CameraExtension;
+			packageProductDependencies = (
+			);
 			productName = CameraExtension;
 			productReference = 5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */;
 			productType = "com.apple.product-type.system-extension";
@@ -282,6 +286,8 @@
 				442D86BBD165486F908218A4 /* PBXTargetDependency */,
 			);
 			name = MultiHUD;
+			packageProductDependencies = (
+			);
 			productName = MultiHUD;
 			productReference = 20B054380A88B2514460C1FC /* MultiHUD.app */;
 			productType = "com.apple.product-type.application";
@@ -310,7 +316,6 @@
 				};
 			};
 			buildConfigurationList = BB41B3AB8775D5E19BFA60FC /* Build configuration list for PBXProject "MultiHUD" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -318,6 +323,9 @@
 				en,
 			);
 			mainGroup = D0A39794670971866A8E2B5A;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = AF163A581B0B43366F92B8A9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (

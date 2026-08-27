@@ -80,6 +80,21 @@ struct MenuBarView: View {
 
                 Toggle("Countdown", isOn: s.countdownEnabled)
                     .onChange(of: settings.countdownEnabled) { _, _ in settings.save() }
+
+                HStack(spacing: 6) {
+                    DatePicker("", selection: s.countdownEndTime, displayedComponents: .hourAndMinute)
+                        .onChange(of: settings.countdownEndTime) { _, _ in settings.save() }
+                        .labelsHidden()
+                    Button(settings.countdownEndsAt > 0 ? "Restart" : "Start") {
+                        settings.startCountdown()
+                    }
+                    .buttonStyle(.borderedProminent).controlSize(.mini)
+                    .disabled(!settings.countdownEnabled)
+                    Button("Reset") { settings.resetCountdown() }
+                        .controlSize(.mini)
+                        .disabled(settings.countdownEndsAt == 0)
+                }
+                .padding(.leading, 20)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
