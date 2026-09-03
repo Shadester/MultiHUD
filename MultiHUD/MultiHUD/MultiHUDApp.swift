@@ -54,29 +54,20 @@ struct MultiHUDApp: App {
         }
     }
 
-    // Single instances shared across both ContentViews via the environment.
-    @State private var settings = AppSettings()
-    @State private var ext = ExtensionManager()
+    @NSApplicationDelegateAdaptor(MultiHUDAppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup(id: "main") {
             ContentView()
-                .environment(settings)
-                .environment(ext)
+                .environment(appDelegate.settings)
+                .environment(appDelegate.extensionManager)
                 .onOpenURL { _ in
                     // Woken by camera extension — weather fetch already running.
                 }
                 .task {
-                    ext.activate()
+                    appDelegate.extensionManager.activate()
                     _ = HostWeatherService.shared
                 }
         }
-
-        MenuBarExtra("MultiHUD", systemImage: "camera.filters") {
-            MenuBarView()
-                .environment(settings)
-                .environment(ext)
-        }
-        .menuBarExtraStyle(.window)
     }
 }

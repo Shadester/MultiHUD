@@ -28,7 +28,7 @@ struct MenuBarView: View {
                 Spacer()
                 Button("Open") {
                     NSApp.activate(ignoringOtherApps: true)
-                    if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+                    if let window = NSApp.windows.first(where: { $0.canBecomeMain && !($0 is NSPanel) }) {
                         window.makeKeyAndOrderFront(nil)
                     } else {
                         NSWorkspace.shared.open(Bundle.main.bundleURL)

@@ -12,6 +12,7 @@
 		34453175C9A0C8D410C9605B /* rvm_mobilenetv3_1920x1080_s0.25_fp16.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = F7A258A0A1F87F8B8F8D0B03 /* rvm_mobilenetv3_1920x1080_s0.25_fp16.mlmodel */; };
 		34D96025EF5B202E18939934 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A809FD3DCC0FB7C95E80A9E6 /* ContentView.swift */; };
 		370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */; };
+		41D4A6E7684C5FFCBF88EC18 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41AC0B466F93A366CCAE471B /* StatusBarController.swift */; };
 		51AA24BFE68F6608F0D5ED59 /* GuidedFilter.metal in Sources */ = {isa = PBXBuildFile; fileRef = F4C0066F53EBC79C48CA44B0 /* GuidedFilter.metal */; };
 		52232F53E5E23109C6CCD3F5 /* ExtensionSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AC2F05F18288C3B0F51573 /* ExtensionSettingsTests.swift */; };
 		5414F958127917508B7CFFD1 /* WeatherKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 49F6EE44609BEC77CF432D82 /* WeatherKit.framework */; };
@@ -82,6 +83,7 @@
 		2E26B01EA2877265923504BD /* RVMMatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMMatting.swift; sourceTree = "<group>"; };
 		336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiHUDApp.swift; sourceTree = "<group>"; };
 		34DDC5B1799C5F6C32BD1287 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		41AC0B466F93A366CCAE471B /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		42FA04B68563DC2F3C59530E /* CameraExtension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CameraExtension-Bridging-Header.h"; sourceTree = "<group>"; };
 		49F6EE44609BEC77CF432D82 /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
 		5483570D90A700FA9B9722E7 /* CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -162,6 +164,7 @@
 				73735BC6E631A817CB10A703 /* MenuBarView.swift */,
 				336C0A3A9B22D630A8D37667 /* MultiHUDApp.swift */,
 				A9189FA8A1DA83DC74F53022 /* PrivacyInfo.xcprivacy */,
+				41AC0B466F93A366CCAE471B /* StatusBarController.swift */,
 				904149553F57F812D8E56818 /* WeatherService.swift */,
 			);
 			path = MultiHUD;
@@ -371,6 +374,7 @@
 				722170BD66FA82EEC4AA6480 /* ExtensionManager.swift in Sources */,
 				08315C1A42248CF4AA9CD3BE /* MenuBarView.swift in Sources */,
 				370810B407F0358F29D69472 /* MultiHUDApp.swift in Sources */,
+				41D4A6E7684C5FFCBF88EC18 /* StatusBarController.swift in Sources */,
 				B098453811690FEC5EF1D820 /* WeatherService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -479,7 +483,7 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 0.5.1;
+				CURRENT_PROJECT_VERSION = 5.1.0;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = HGS3GTCF73;
 				ENABLE_HARDENED_RUNTIME = NO;
@@ -500,7 +504,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 0.5.1;
+				MARKETING_VERSION = 5.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -571,7 +575,7 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 0.5.1;
+				CURRENT_PROJECT_VERSION = 5.1.0;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = HGS3GTCF73;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -586,7 +590,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 0.5.1;
+				MARKETING_VERSION = 5.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_CODE_SIGN_FLAGS = "--timestamp";

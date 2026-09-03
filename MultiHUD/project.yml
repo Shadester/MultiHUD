@@ -18,8 +18,8 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
     # System extensions are only replaced when both version fields increase.
     # Release builds override these with the Git tag in deploy.sh / release.yml.
-    MARKETING_VERSION: "0.5.1"
-    CURRENT_PROJECT_VERSION: "0.5.1"
+    MARKETING_VERSION: "5.1.0"
+    CURRENT_PROJECT_VERSION: "5.1.0"
   configs:
     Debug:
       ENABLE_HARDENED_RUNTIME: NO
