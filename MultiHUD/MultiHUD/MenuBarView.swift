@@ -104,16 +104,19 @@ struct MenuBarView: View {
 
             // Opacity
             HStack(spacing: 8) {
-                Text("Opacity")
+                Text("Overlay opacity")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                 Slider(value: s.opacity, in: 0.1...1.0, step: 0.05)
                     .onChange(of: settings.opacity) { _, _ in settings.save() }
+                    .tint(.accentColor)
+                    .frame(minWidth: 120)
                 Text("\(Int(settings.opacity * 100))%")
                     .font(.system(size: 12))
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32, alignment: .trailing)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .frame(width: 44, alignment: .trailing)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -142,6 +145,14 @@ struct MenuBarView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
         }
-        .frame(width: 280)
+        // Leave enough room for interactive controls such as the opacity slider.
+        // MenuBarExtra positions this window on-screen even near a display edge.
+        .frame(width: 340)
     }
+}
+
+#Preview {
+    MenuBarView()
+        .environment(AppSettings())
+        .environment(ExtensionManager())
 }

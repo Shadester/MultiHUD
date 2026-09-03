@@ -362,9 +362,10 @@ struct ContentView: View {
         return Form {
             Section("Overlay") {
                 HStack {
-                    Text("Opacity")
+                    Text("Overlay opacity")
                     Slider(value: s.opacity, in: 0.1...1.0, step: 0.05)
                         .onChange(of: settings.opacity) { _, _ in settings.save() }
+                        .tint(.accentColor)
                     Text("\(Int(settings.opacity * 100))%")
                         .monospacedDigit()
                         .frame(width: 36, alignment: .trailing)
