@@ -25,6 +25,7 @@ xcodebuild \
   -derivedDataPath "$BUILD_DIR/xcode" \
   SYMROOT="$BUILD_DIR" \
   MARKETING_VERSION="$VERSION" \
+  CURRENT_PROJECT_VERSION="$VERSION" \
   build
 
 APP_PATH="$BUILD_DIR/$CONFIGURATION/$APP_NAME.app"

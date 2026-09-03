@@ -68,7 +68,8 @@ jobs:
             -configuration Release \
             -archivePath "$RUNNER_TEMP/MultiHUD.xcarchive" \
             CODE_SIGN_STYLE=Manual \
-            MARKETING_VERSION="$VERSION"
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$VERSION"
 
       - name: Export app
         run: |
