@@ -87,7 +87,9 @@ final class AppSettings {
         segQuality     = json["segQuality"]     as? String ?? "balanced"
         resolution     = json["resolution"]     as? String ?? "720p"
         opacity        = json["opacity"]        as? Double ?? 1.0
-        overlaySafeArea = json["overlaySafeArea"] as? String ?? "fullFrame"
+        let requestedSafeArea = json["overlaySafeArea"] as? String ?? "fullFrame"
+        overlaySafeArea = ["fullFrame", "meetingSafe", "topStrip", "lowerThird"].contains(requestedSafeArea)
+            ? requestedSafeArea : "fullFrame"
         useRVM         = json["useRVM"]         as? Bool   ?? true
 
         guard let arr = json["widgets"] as? [[String: Any]] else { return }

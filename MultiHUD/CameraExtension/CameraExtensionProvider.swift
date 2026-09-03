@@ -819,7 +819,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         let image = CIImage(cgImage: cgImage)
         let iw = image.extent.width
         let ih = image.extent.height
-        let insets = overlayInsets(for: safeArea, canvasSize: canvasSize)
+        let insets = safeArea.insets(for: canvasSize)
 
         let x: CGFloat
         let y: CGFloat
@@ -835,26 +835,6 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         return image.transformed(by: CGAffineTransform(translationX: x, y: y))
     }
 
-    private func overlayInsets(for safeArea: OverlaySafeArea, canvasSize: CGSize) -> (horizontal: CGFloat, top: CGFloat, bottom: CGFloat) {
-        let standard: CGFloat = 28
-        switch safeArea {
-        case .fullFrame:
-            return (standard, standard, standard)
-        case .meetingSafe:
-            // Keeps corner overlays inside a common 4:3 center crop of a 16:9 feed.
-            return (max(standard, canvasSize.width * 0.125),
-                    max(standard, canvasSize.height * 0.10),
-                    max(standard, canvasSize.height * 0.10))
-        case .topStrip:
-            return (max(standard, canvasSize.width * 0.07),
-                    max(standard, canvasSize.height * 0.10),
-                    standard)
-        case .lowerThird:
-            return (max(standard, canvasSize.width * 0.07),
-                    standard,
-                    max(standard, canvasSize.height * 0.12))
-        }
-    }
 }
 
 // MARK: - Overlay SwiftUI View

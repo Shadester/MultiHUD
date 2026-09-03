@@ -100,6 +100,29 @@ struct ExtensionSettingsTests {
         #expect(ExtensionSettings.load(from: url).overlaySafeArea == .fullFrame)
     }
 
+    @Test("Safe-area profiles produce the expected 16:9 insets")
+    func safeAreaInsets() {
+        let size = CGSize(width: 1280, height: 720)
+        #expect(OverlaySafeArea.fullFrame.insets(for: size) == OverlayInsets(horizontal: 28, top: 28, bottom: 28))
+        #expect(OverlaySafeArea.meetingSafe.insets(for: size) == OverlayInsets(horizontal: 160, top: 72, bottom: 72))
+        let topStrip = OverlaySafeArea.topStrip.insets(for: size)
+        #expect(abs(topStrip.horizontal - 89.6) < 0.001)
+        #expect(topStrip.top == 72)
+        #expect(topStrip.bottom == 28)
+        let lowerThird = OverlaySafeArea.lowerThird.insets(for: size)
+        #expect(abs(lowerThird.horizontal - 89.6) < 0.001)
+        #expect(lowerThird.top == 28)
+        #expect(abs(lowerThird.bottom - 86.4) < 0.001)
+    }
+
+    @Test("Safe-area profiles keep a minimum inset at small sizes")
+    func safeAreaMinimumInsets() {
+        let insets = OverlaySafeArea.topStrip.insets(for: CGSize(width: 320, height: 180))
+        #expect(insets.horizontal == 28)
+        #expect(insets.top == 28)
+        #expect(insets.bottom == 28)
+    }
+
     @Test("Partial widget config defaults startedAt/endsAt to 0")
     func partialWidgetConfig() throws {
         let json: [String: Any] = [

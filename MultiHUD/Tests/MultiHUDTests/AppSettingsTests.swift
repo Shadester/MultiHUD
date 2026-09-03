@@ -71,6 +71,13 @@ struct AppSettingsTests {
         #expect(s.weatherEnabled == true)
     }
 
+    @Test("Unknown host safe area falls back to full frame")
+    func invalidSafeAreaFallsBack() {
+        let s = AppSettings()
+        s.apply(["overlaySafeArea": "invalid"])
+        #expect(s.overlaySafeArea == "fullFrame")
+    }
+
     @Test("Applying partial widgets resets omitted widgets")
     func partialWidgetsResetToDefaults() {
         let s = AppSettings()

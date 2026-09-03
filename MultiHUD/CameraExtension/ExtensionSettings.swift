@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import CoreGraphics
 import Vision
 
 // MARK: - Extension Settings types
@@ -12,8 +13,41 @@ internal enum OverlayPosition: String {
     case bottomLeft, bottomRight, topLeft, topRight, bottomCenter, topCenter
 }
 
+internal struct OverlayInsets: Equatable {
+    let horizontal: CGFloat
+    let top: CGFloat
+    let bottom: CGFloat
+}
+
 internal enum OverlaySafeArea: String {
     case fullFrame, meetingSafe, topStrip, lowerThird
+
+    func insets(for canvasSize: CGSize) -> OverlayInsets {
+        let standard: CGFloat = 28
+        switch self {
+        case .fullFrame:
+            return OverlayInsets(horizontal: standard, top: standard, bottom: standard)
+        case .meetingSafe:
+            // Keeps corner overlays inside a common 4:3 center crop of a 16:9 feed.
+            return OverlayInsets(
+                horizontal: max(standard, canvasSize.width * 0.125),
+                top: max(standard, canvasSize.height * 0.10),
+                bottom: max(standard, canvasSize.height * 0.10)
+            )
+        case .topStrip:
+            return OverlayInsets(
+                horizontal: max(standard, canvasSize.width * 0.07),
+                top: max(standard, canvasSize.height * 0.10),
+                bottom: standard
+            )
+        case .lowerThird:
+            return OverlayInsets(
+                horizontal: max(standard, canvasSize.width * 0.07),
+                top: standard,
+                bottom: max(standard, canvasSize.height * 0.12)
+            )
+        }
+    }
 }
 
 internal enum WidgetType: String {

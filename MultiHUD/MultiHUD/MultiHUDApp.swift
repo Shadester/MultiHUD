@@ -39,6 +39,9 @@ enum SingleInstance {
 struct MultiHUDApp: App {
 
     init() {
+        // Unit tests load the host app inside an XCTest runner; they must not
+        // contend with the installed app's lock or terminate their own runner.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
         if SingleInstance.acquire() { return }
         // A host is already running. Bring it forward and leave this duplicate.
         DispatchQueue.main.async {
