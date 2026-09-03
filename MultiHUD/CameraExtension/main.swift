@@ -11,7 +11,7 @@ CMIOExtensionProvider.startService(provider: providerSource.provider)
 
 // Wire weather file updates into the overlay.
 WeatherService.shared.onUpdate = { text in
-    providerSource.deviceSource.overlayText = text
+    providerSource.deviceSource.updateOverlayText(text)
 }
 
 CFRunLoopRun()

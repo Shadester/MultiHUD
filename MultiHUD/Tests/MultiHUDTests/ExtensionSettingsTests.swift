@@ -24,6 +24,7 @@ struct ExtensionSettingsTests {
             "blurBackground": true,
             "segQuality": "accurate",
             "opacity": 0.75,
+            "overlaySafeArea": "meetingSafe",
             "widgets": [
                 ["type": "weather",   "position": "bottomLeft",  "enabled": true,  "startedAt": 0.0,   "endsAt": 0.0],
                 ["type": "clock",     "position": "topRight",    "enabled": false, "startedAt": 0.0,   "endsAt": 0.0],
@@ -39,6 +40,7 @@ struct ExtensionSettingsTests {
         #expect(s.blurBackground == true)
         #expect(s.segQuality == .accurate)
         #expect(s.opacity == 0.75)
+        #expect(s.overlaySafeArea == .meetingSafe)
         #expect(s.widgets.count == 4)
 
         let countup = try #require(s.widgets.first { $0.type == .countup })
@@ -57,6 +59,7 @@ struct ExtensionSettingsTests {
         #expect(s.blurBackground == false)
         #expect(s.segQuality == .balanced)
         #expect(s.opacity == 1.0)
+        #expect(s.overlaySafeArea == .fullFrame)
         #expect(s.widgets.isEmpty)
     }
 
@@ -88,6 +91,13 @@ struct ExtensionSettingsTests {
             let s = ExtensionSettings.load(from: url)
             #expect(s.segQuality == expected)
         }
+    }
+
+    @Test("Unknown safe area falls back to full frame")
+    func invalidSafeAreaFallsBack() throws {
+        let url = try writeTempJSON(["overlaySafeArea": "invalid"])
+        defer { try? FileManager.default.removeItem(at: url) }
+        #expect(ExtensionSettings.load(from: url).overlaySafeArea == .fullFrame)
     }
 
     @Test("Partial widget config defaults startedAt/endsAt to 0")

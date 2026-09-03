@@ -18,6 +18,7 @@ struct AppSettingsTests {
         s.segQuality = "accurate"
         s.resolution = "1080p"
         s.opacity = 0.8
+        s.overlaySafeArea = "meetingSafe"
         s.weatherEnabled = false
         s.weatherPosition = "topRight"
         s.clockEnabled = true
@@ -39,6 +40,7 @@ struct AppSettingsTests {
         #expect(s2.segQuality == "accurate")
         #expect(s2.resolution == "1080p")
         #expect(s2.opacity == 0.8)
+        #expect(s2.overlaySafeArea == "meetingSafe")
         #expect(s2.weatherEnabled == false)
         #expect(s2.weatherPosition == "topRight")
         #expect(s2.clockEnabled == true)
@@ -65,8 +67,26 @@ struct AppSettingsTests {
         #expect(s.segQuality == "balanced")
         #expect(s.resolution == "720p")
         #expect(s.opacity == 1.0)
-        // weatherEnabled unchanged since no "widgets" key
+        #expect(s.overlaySafeArea == "fullFrame")
+        #expect(s.weatherEnabled == true)
+    }
+
+    @Test("Applying partial widgets resets omitted widgets")
+    func partialWidgetsResetToDefaults() {
+        let s = AppSettings()
+        s.clockEnabled = true
+        s.clockPosition = "topRight"
+        s.countupStartedAt = 123
+
+        s.apply([
+            "widgets": [["type": "weather", "position": "topLeft", "enabled": false]]
+        ])
+
         #expect(s.weatherEnabled == false)
+        #expect(s.weatherPosition == "topLeft")
+        #expect(s.clockEnabled == false)
+        #expect(s.clockPosition == "bottomLeft")
+        #expect(s.countupStartedAt == 0)
     }
 
     @Test("Widget array parsing")

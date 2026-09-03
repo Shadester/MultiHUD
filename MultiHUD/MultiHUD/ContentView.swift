@@ -52,6 +52,8 @@ struct ContentView: View {
     @State private var cameras: [AVCaptureDevice] = []
     @State private var hasBackground = false
     @State private var showBackgroundPicker = false
+    @State private var backgroundError: String?
+    @State private var showEngineInfo = false
     @State private var activelyUsingRVM: Bool? = nil
     @State private var rvmFailureReason: String? = nil
     @Environment(\.scenePhase) private var scenePhase
@@ -270,15 +272,26 @@ struct ContentView: View {
                 }
                 .onChange(of: settings.resolution) { _, _ in settings.save() }
 
-                Picker("Engine", selection: s.useRVM) {
-                    Text("RVM").tag(true)
-                    Text("Vision").tag(false)
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: settings.useRVM) { _, _ in
-                    settings.save()
-                    // Allow extension time to apply the change and write camstatus.json
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { readCamStatus() }
+                HStack {
+                    Picker("Engine", selection: s.useRVM) {
+                        Text("RVM (Recommended)").tag(true)
+                        Text("Vision").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: settings.useRVM) { _, _ in
+                        settings.save()
+                        // Allow extension time to apply the change and write camstatus.json
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { readCamStatus() }
+                    }
+
+                    Button { showEngineInfo = true } label: {
+                        Image(systemName: "info.circle")
+                    }
+                    .buttonStyle(.plain)
+                    .help("About RVM and Vision")
+                    .popover(isPresented: $showEngineInfo) {
+                        EngineInfoView()
+                    }
                 }
 
                 if let active = activelyUsingRVM {
@@ -332,6 +345,14 @@ struct ContentView: View {
             guard case .success(let urls) = result, let url = urls.first else { return }
             importBackground(from: url)
         }
+        .alert("Couldn’t Update Background", isPresented: Binding(
+            get: { backgroundError != nil },
+            set: { if !$0 { backgroundError = nil } }
+        )) {
+            Button("OK", role: .cancel) { backgroundError = nil }
+        } message: {
+            Text(backgroundError ?? "Unknown error")
+        }
     }
 
     // MARK: - Widgets tab
@@ -348,6 +369,19 @@ struct ContentView: View {
                         .monospacedDigit()
                         .frame(width: 36, alignment: .trailing)
                 }
+
+                Picker("Placement area", selection: s.overlaySafeArea) {
+                    Text("Full frame").tag("fullFrame")
+                    Text("Meeting safe").tag("meetingSafe")
+                    Text("Top strip").tag("topStrip")
+                    Text("Lower third").tag("lowerThird")
+                }
+                .onChange(of: settings.overlaySafeArea) { _, _ in settings.save() }
+
+                OverlaySafeAreaPreview(profile: settings.overlaySafeArea)
+                Text("Meeting Safe keeps corner widgets inside a common 4:3 center crop. Use Top Strip or Lower Third when a video app trims an edge.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Weather") {
@@ -436,6 +470,8 @@ struct ContentView: View {
     }
 
     private func relaunchApp() {
+        // Let the replacement host acquire the process-wide lock during handoff.
+        SingleInstance.release()
         let config = NSWorkspace.OpenConfiguration()
         config.createsNewApplicationInstance = true
         NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL,
@@ -454,26 +490,52 @@ struct ContentView: View {
     // MARK: - Background
 
     private func importBackground(from url: URL) {
-        guard url.startAccessingSecurityScopedResource() else { return }
+        guard url.startAccessingSecurityScopedResource() else {
+            backgroundError = "The selected image could not be accessed."
+            return
+        }
         defer { url.stopAccessingSecurityScopedResource() }
-        guard let dest = sharedURL("background.jpg"),
-              let nsImage = NSImage(contentsOf: url),
-              let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        guard let dest = sharedURL("background.jpg") else {
+            backgroundError = "The shared app container is unavailable."
+            return
+        }
+        guard let nsImage = NSImage(contentsOf: url),
+              let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            backgroundError = "The selected file could not be converted to an image."
+            return
+        }
         let rep = NSBitmapImageRep(cgImage: cgImage)
-        guard let data = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else { return }
-        try? data.write(to: dest)
-        hasBackground = true
-        if settings.blurBackground {
-            settings.blurBackground = false
-            settings.save()
+        guard let data = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
+            backgroundError = "The image could not be encoded as JPEG."
+            return
+        }
+        do {
+            try data.write(to: dest, options: .atomic)
+            hasBackground = true
+            if settings.blurBackground {
+                settings.blurBackground = false
+                settings.save()
+            }
+        } catch {
+            backgroundError = "The image could not be saved: \(error.localizedDescription)"
         }
     }
 
     private func clearBackground() {
-        if let url = sharedURL("background.jpg") {
-            try? FileManager.default.removeItem(at: url)
+        guard let url = sharedURL("background.jpg") else {
+            backgroundError = "The shared app container is unavailable."
+            return
         }
-        hasBackground = false
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            hasBackground = false
+            return
+        }
+        do {
+            try FileManager.default.removeItem(at: url)
+            hasBackground = false
+        } catch {
+            backgroundError = "The background could not be removed: \(error.localizedDescription)"
+        }
     }
 
     // MARK: - Preview
@@ -525,6 +587,69 @@ struct ContentView: View {
     private func stopPreview() {
         previewSession?.stopRunning()
         previewSession = nil
+    }
+}
+
+// MARK: - Overlay guidance
+
+private struct EngineInfoView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Segmentation Engine", systemImage: "person.crop.rectangle")
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("RVM — Recommended").fontWeight(.semibold)
+                Text("Uses the bundled Core ML video-matting model. It preserves detail around hair and moving edges more smoothly between frames, using additional GPU or Neural Engine resources.")
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Vision").fontWeight(.semibold)
+                Text("Uses Apple’s built-in person-segmentation API. Choose Fast, Balanced, or Accurate when you prefer its compatibility or want to tune quality versus performance.")
+            }
+        }
+        .font(.callout)
+        .frame(width: 330, alignment: .leading)
+        .padding()
+    }
+}
+
+private struct OverlaySafeAreaPreview: View {
+    let profile: String
+
+    private var insets: (horizontal: CGFloat, top: CGFloat, bottom: CGFloat) {
+        switch profile {
+        case "meetingSafe": return (0.125, 0.10, 0.10)
+        case "topStrip": return (0.07, 0.10, 0.04)
+        case "lowerThird": return (0.07, 0.04, 0.12)
+        default: return (0.03, 0.04, 0.04)
+        }
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+            let safeRect = CGRect(
+                x: size.width * insets.horizontal,
+                y: size.height * insets.top,
+                width: size.width * (1 - 2 * insets.horizontal),
+                height: size.height * (1 - insets.top - insets.bottom)
+            )
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.black.opacity(0.12))
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .frame(width: safeRect.width, height: safeRect.height)
+                    .position(x: safeRect.midX, y: safeRect.midY)
+                Text("16:9 output")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .aspectRatio(16 / 9, contentMode: .fit)
+        .frame(maxWidth: 220)
+        .accessibilityLabel("Overlay safe area preview")
     }
 }
 

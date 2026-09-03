@@ -73,10 +73,11 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         return CIContext(mtlCommandQueue: queue, options: [.cacheIntermediates: false])
     }()
 
-    // RVM matting (CoreML) — nil means Vision fallback
+    // RVM matting and its reusable mask buffer are accessed only on segmentationQueue.
     private var rvmMatting: RVMMatting?
     private var guidedFilter: GuidedFilter?
-    private var useRVM: Bool { rvmMatting != nil }
+    // Read and written only on streamingQueue; avoids reading rvmMatting across queues.
+    private var segmentationUsesRVM = false
     // Reusable mask bake buffer — avoids per-frame allocation
     private var maskBakeBuffer: CVPixelBuffer?
 
@@ -84,8 +85,8 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     private let blendWithMaskFilter: CIFilter = CIFilter(name: "CIBlendWithMask")!
     private let dissolveFilter:      CIFilter = CIFilter(name: "CIDissolveTransition")!
 
-    // Overlay text updated by WeatherService
-    var overlayText: String = "…"
+    // Overlay text is read and written only on streamingQueue.
+    private var overlayText: String = "…"
 
     // Virtual background
     private var backgroundCI: CIImage?
@@ -214,9 +215,10 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             guard let self, index != self.activeResolutionIndex else { return }
             self.activeResolutionIndex = index
             self.outputBufferPool = nil
+            self.maskLock.lock()
             self.latestMaskCI = nil
+            self.maskLock.unlock()
             self.backgroundCI = nil
-            self.maskBakeBuffer = nil
             logger.log("applyResolutionIndex: \(index) (\(index == 1 ? "1080p" : "720p", privacy: .public))")
         }
     }
@@ -224,41 +226,16 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: - Streaming lifecycle
 
     func startStreaming() {
+        streamingQueue.async { [weak self] in self?.startStreamingOnQueue() }
+    }
+
+    private func startStreamingOnQueue() {
         guard streamTimer == nil else { return }
         logger.log("startStreaming [rvm+guided-filter build]")
 
         currentSettings = ExtensionSettings.load()
-
-        // Initialize RVM matting (or Vision-only if user disabled RVM or model not found)
-        let resolution = currentSettings.resolution
-        rvmMatting = currentSettings.useRVM ? RVMMatting(resolution: resolution) : nil
         guidedFilter = GuidedFilter()
-
-        // Determine why RVM failed to load (if applicable) for the host app UI.
-        var rvmFailureReason: String? = nil
-        if currentSettings.useRVM, rvmMatting == nil {
-            let modelName = resolution == "1080p"
-                ? "rvm_mobilenetv3_1920x1080_s0.25_fp16"
-                : "rvm_mobilenetv3_1280x720_s0.375_fp16"
-            let found = Bundle(for: CameraExtensionDeviceSource.self)
-                .url(forResource: modelName, withExtension: "mlmodelc") != nil
-                || Bundle(for: CameraExtensionDeviceSource.self)
-                .url(forResource: modelName, withExtension: "mlmodel") != nil
-            rvmFailureReason = found ? "Failed to load model" : "Model not bundled"
-        }
-        if rvmMatting != nil {
-            logger.log("Using RVM matting (CoreML)")
-        } else {
-            logger.log("RVM unavailable, falling back to Vision segmentation")
-        }
-
-        // Write camstatus.json so the host app can show which engine is active.
-        var camStatus: [String: Any] = ["usingRVM": rvmMatting != nil]
-        if let reason = rvmFailureReason { camStatus["rvmFailureReason"] = reason }
-        if let url = sharedContainerURL("camstatus.json"),
-           let data = try? JSONSerialization.data(withJSONObject: camStatus) {
-            try? data.write(to: url, options: .atomic)
-        }
+        configureMatting(useRVM: currentSettings.useRVM, resolution: currentSettings.resolution)
 
         notify_register_dispatch(
             "net.fakeapps.MultiHUD.settingsChanged",
@@ -275,28 +252,22 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             if newIndex != oldIndex {
                 self.activeResolutionIndex = newIndex
                 self.outputBufferPool = nil
+                self.maskLock.lock()
                 self.latestMaskCI = nil
+                self.maskLock.unlock()
                 self.backgroundCI = nil
-                self.maskBakeBuffer = nil
-                _ = self.rvmMatting?.switchResolution(self.currentSettings.resolution)
+                self.configureMatting(useRVM: self.currentSettings.useRVM,
+                                      resolution: self.currentSettings.resolution)
                 logger.log("Resolution switching to \(newIndex == 1 ? "1080p" : "720p", privacy: .public)")
                 self._streamSource.notifyActiveFormatChanged(newIndex)
             }
             if self.currentSettings.useRVM != oldUseRVM {
-                // Engine toggle changed — reinitialise segmentation.
+                // Engine toggle changed — reinitialise segmentation on its owning queue.
+                self.maskLock.lock()
                 self.latestMaskCI = nil
-                self.rvmMatting = self.currentSettings.useRVM
-                    ? RVMMatting(resolution: self.currentSettings.resolution)
-                    : nil
-                var camStatus: [String: Any] = ["usingRVM": self.rvmMatting != nil]
-                if self.currentSettings.useRVM, self.rvmMatting == nil {
-                    camStatus["rvmFailureReason"] = "Failed to load model"
-                }
-                if let url = sharedContainerURL("camstatus.json"),
-                   let data = try? JSONSerialization.data(withJSONObject: camStatus) {
-                    try? data.write(to: url, options: .atomic)
-                }
-                logger.log("Engine switched: RVM=\(self.rvmMatting != nil, privacy: .public)")
+                self.maskLock.unlock()
+                self.configureMatting(useRVM: self.currentSettings.useRVM,
+                                      resolution: self.currentSettings.resolution)
             }
             if self.currentSettings.cameraId != oldCameraId {
                 logger.log("Camera ID changed, hot-swapping input")
@@ -318,16 +289,58 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     }
 
     func stopStreaming() {
+        streamingQueue.async { [weak self] in self?.stopStreamingOnQueue() }
+    }
+
+    private func stopStreamingOnQueue() {
         if settingsNotifyToken != NOTIFY_TOKEN_INVALID {
             notify_cancel(settingsNotifyToken)
             settingsNotifyToken = NOTIFY_TOKEN_INVALID
         }
         streamTimer?.cancel()
         streamTimer = nil
+        segmentationUsesRVM = false
         sessionQueue.async { [weak self] in
             self?.captureSession?.stopRunning()
             self?.captureSession = nil
         }
+    }
+
+    func updateOverlayText(_ text: String) {
+        streamingQueue.async { [weak self] in self?.overlayText = text }
+    }
+
+    private func configureMatting(useRVM: Bool, resolution: String) {
+        segmentationQueue.async { [weak self] in
+            guard let self else { return }
+            if useRVM {
+                if let rvm = self.rvmMatting, rvm.resolution != resolution {
+                    if !rvm.switchResolution(resolution) {
+                        self.rvmMatting = RVMMatting(resolution: resolution)
+                    }
+                } else if self.rvmMatting == nil {
+                    self.rvmMatting = RVMMatting(resolution: resolution)
+                }
+            } else {
+                self.rvmMatting = nil
+            }
+
+            let usingRVM = self.rvmMatting != nil
+            let failureReason = useRVM && !usingRVM ? "Failed to load model" : nil
+            self.writeCameraStatus(usingRVM: usingRVM, failureReason: failureReason)
+            self.streamingQueue.async { [weak self] in
+                self?.segmentationUsesRVM = usingRVM
+            }
+            logger.log("Segmentation engine configured: RVM=\(usingRVM, privacy: .public)")
+        }
+    }
+
+    private func writeCameraStatus(usingRVM: Bool, failureReason: String?) {
+        var status: [String: Any] = ["usingRVM": usingRVM]
+        if let failureReason { status["rvmFailureReason"] = failureReason }
+        guard let url = sharedContainerURL("camstatus.json"),
+              let data = try? JSONSerialization.data(withJSONObject: status) else { return }
+        try? data.write(to: url, options: .atomic)
     }
 
     // MARK: - Capture session
@@ -472,14 +485,16 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         // and skip entirely when nothing needs a mask (no virtual background, blur off).
         segFrameCounter += 1
         let maskNeeded = backgroundCI != nil || currentSettings.blurBackground
-        let shouldSegment = maskNeeded && !segmentationInFlight && (useRVM || (segFrameCounter % 3 == 0))
+        let shouldSegment = maskNeeded && !segmentationInFlight
+            && (segmentationUsesRVM || (segFrameCounter % 3 == 0))
         if shouldSegment, let buf = inputBuffer {
             segmentationInFlight = true
             let quality = currentSettings.segQuality
+            let outputSize = CGSize(width: outputWidth, height: outputHeight)
             segmentationQueue.async { [weak self] in
                 guard let self else { return }
                 self.segmentationRequest.qualityLevel = quality
-                self.runSegmentation(on: buf)
+                self.runSegmentation(on: buf, outputSize: outputSize)
                 self.streamingQueue.async { self.segmentationInFlight = false }
             }
         }
@@ -516,14 +531,19 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         if frameCount % 30 == 0 {
             let elapsed = CFAbsoluteTimeGetCurrent() - frameStart
             let fps = 30.0 / (CFAbsoluteTimeGetCurrent() - lastFrameLogTime)
-            logger.log("perf: frame=\(Int(elapsed * 1000))ms fps=\(String(format: "%.1f", fps), privacy: .public) bg=\(self.backgroundCI != nil, privacy: .public) mask=\(self.latestMaskCI != nil, privacy: .public)")
+            maskLock.lock()
+            let hasMask = latestMaskCI != nil
+            maskLock.unlock()
+            logger.log("perf: frame=\(Int(elapsed * 1000))ms fps=\(String(format: "%.1f", fps), privacy: .public) bg=\(self.backgroundCI != nil, privacy: .public) mask=\(hasMask, privacy: .public)")
             lastFrameLogTime = CFAbsoluteTimeGetCurrent()
         }
     }
 
     // Runs on segmentationQueue — produces mask via RVM (preferred) or Vision (fallback).
-    private func runSegmentation(on pixelBuffer: CVPixelBuffer) {
-        let extent = CGRect(x: 0, y: 0, width: outputWidth, height: outputHeight)
+    private func runSegmentation(on pixelBuffer: CVPixelBuffer, outputSize: CGSize) {
+        let width = Int(outputSize.width)
+        let height = Int(outputSize.height)
+        let extent = CGRect(origin: .zero, size: outputSize)
         var maskCI: CIImage
 
         if let rvm = rvmMatting, let alpha = rvm.predict(pixelBuffer: pixelBuffer) {
@@ -559,15 +579,15 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         // Bake mask to pixel buffer to break lazy CIImage filter chain.
         // Reuse buffer across frames; reallocate only on resolution change.
         if maskBakeBuffer == nil
-            || CVPixelBufferGetWidth(maskBakeBuffer!) != outputWidth
-            || CVPixelBufferGetHeight(maskBakeBuffer!) != outputHeight {
+            || CVPixelBufferGetWidth(maskBakeBuffer!) != width
+            || CVPixelBufferGetHeight(maskBakeBuffer!) != height {
             let attrs: [CFString: Any] = [
-                kCVPixelBufferWidthKey:  outputWidth,
-                kCVPixelBufferHeightKey: outputHeight,
+                kCVPixelBufferWidthKey:  width,
+                kCVPixelBufferHeightKey: height,
                 kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_OneComponent8,
                 kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
             ]
-            CVPixelBufferCreate(kCFAllocatorDefault, outputWidth, outputHeight,
+            CVPixelBufferCreate(kCFAllocatorDefault, width, height,
                                 kCVPixelFormatType_OneComponent8, attrs as CFDictionary, &maskBakeBuffer)
         }
         if let bakeBuffer = maskBakeBuffer {
@@ -653,11 +673,12 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         // Apply virtual background or blur via person segmentation mask.
         let baseLayer: CIImage
         if let customBg = backgroundCI {
-            // Custom background image: pre-scaled at load time, use directly each frame.
-            if input != nil, let mask {
+            // Keep the live camera visible until a segmentation mask is available.
+            // A background-only fallback is appropriate only when there is no input frame.
+            if let mask, input != nil {
                 baseLayer = compositeWithMask(person: webcamLayer, background: customBg, mask: mask)
             } else {
-                baseLayer = customBg
+                baseLayer = input == nil ? customBg : webcamLayer
             }
         } else if settings.blurBackground, input != nil, let mask {
             // Gaussian blur of the webcam layer as background.
@@ -678,6 +699,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             let items = widgets.compactMap { widgetDisplayItem($0, now: now, date: date) }
             guard !items.isEmpty else { continue }
             if let pillCI = makePillCIImage(items, position: position, opacity: settings.opacity,
+                                            safeArea: settings.overlaySafeArea,
                                             canvasSize: CGSize(width: outputWidth, height: outputHeight)) {
                 composite = pillCI.composited(over: composite)
             }
@@ -685,7 +707,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 
         // Use CIRenderDestination for async GPU pipelining (WWDC 2020).
         let dest = CIRenderDestination(pixelBuffer: output)
-        try? ciContext.startTask(toRender: composite, to: dest)
+        _ = try? ciContext.startTask(toRender: composite, to: dest)
     }
 
     private func positioned(_ image: CIImage, in extent: CGRect) -> CIImage {
@@ -772,6 +794,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         _ items: [WidgetDisplayItem],
         position: OverlayPosition,
         opacity: Double,
+        safeArea: OverlaySafeArea,
         canvasSize: CGSize
     ) -> CIImage? {
         let renderOverlay = {
@@ -794,22 +817,43 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         guard let cgImage else { return nil }
 
         let image = CIImage(cgImage: cgImage)
-        let inset: CGFloat = 28
         let iw = image.extent.width
         let ih = image.extent.height
+        let insets = overlayInsets(for: safeArea, canvasSize: canvasSize)
 
         let x: CGFloat
         let y: CGFloat
         switch position {
-        case .bottomLeft:    x = inset;                               y = inset
-        case .bottomRight:   x = canvasSize.width  - iw - inset;     y = inset
-        case .topLeft:       x = inset;                               y = canvasSize.height - ih - inset
-        case .topRight:      x = canvasSize.width  - iw - inset;     y = canvasSize.height - ih - inset
-        case .bottomCenter:  x = (canvasSize.width - iw) / 2;        y = inset
-        case .topCenter:     x = (canvasSize.width - iw) / 2;        y = canvasSize.height - ih - inset
+        case .bottomLeft:    x = insets.horizontal;                    y = insets.bottom
+        case .bottomRight:   x = canvasSize.width  - iw - insets.horizontal; y = insets.bottom
+        case .topLeft:       x = insets.horizontal;                    y = canvasSize.height - ih - insets.top
+        case .topRight:      x = canvasSize.width  - iw - insets.horizontal; y = canvasSize.height - ih - insets.top
+        case .bottomCenter:  x = (canvasSize.width - iw) / 2;         y = insets.bottom
+        case .topCenter:     x = (canvasSize.width - iw) / 2;         y = canvasSize.height - ih - insets.top
         }
 
         return image.transformed(by: CGAffineTransform(translationX: x, y: y))
+    }
+
+    private func overlayInsets(for safeArea: OverlaySafeArea, canvasSize: CGSize) -> (horizontal: CGFloat, top: CGFloat, bottom: CGFloat) {
+        let standard: CGFloat = 28
+        switch safeArea {
+        case .fullFrame:
+            return (standard, standard, standard)
+        case .meetingSafe:
+            // Keeps corner overlays inside a common 4:3 center crop of a 16:9 feed.
+            return (max(standard, canvasSize.width * 0.125),
+                    max(standard, canvasSize.height * 0.10),
+                    max(standard, canvasSize.height * 0.10))
+        case .topStrip:
+            return (max(standard, canvasSize.width * 0.07),
+                    max(standard, canvasSize.height * 0.10),
+                    standard)
+        case .lowerThird:
+            return (max(standard, canvasSize.width * 0.07),
+                    standard,
+                    max(standard, canvasSize.height * 0.12))
+        }
     }
 }
 

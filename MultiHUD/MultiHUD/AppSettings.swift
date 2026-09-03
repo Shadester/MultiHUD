@@ -31,6 +31,7 @@ final class AppSettings {
 
     // MARK: Widgets
     var opacity: Double = 1.0
+    var overlaySafeArea: String = "fullFrame"
     var weatherEnabled: Bool = true
     var weatherPosition: String = "bottomLeft"
     var clockEnabled: Bool = false
@@ -60,11 +61,33 @@ final class AppSettings {
     }
 
     func apply(_ json: [String: Any]) {
+        // Reset first so a partial or older settings file cannot retain stale values
+        // from a previous load.
+        cameraId = ""
+        blurBackground = false
+        segQuality = "balanced"
+        resolution = "720p"
+        useRVM = true
+        opacity = 1.0
+        overlaySafeArea = "fullFrame"
+        weatherEnabled = true
+        weatherPosition = "bottomLeft"
+        clockEnabled = false
+        clockPosition = "bottomLeft"
+        countupEnabled = false
+        countupPosition = "bottomRight"
+        countupStartedAt = 0
+        countdownEnabled = false
+        countdownPosition = "bottomLeft"
+        countdownEndTime = Self.nextHalfHour()
+        countdownEndsAt = 0
+
         cameraId       = json["cameraId"]       as? String ?? ""
         blurBackground = json["blurBackground"] as? Bool   ?? false
         segQuality     = json["segQuality"]     as? String ?? "balanced"
         resolution     = json["resolution"]     as? String ?? "720p"
         opacity        = json["opacity"]        as? Double ?? 1.0
+        overlaySafeArea = json["overlaySafeArea"] as? String ?? "fullFrame"
         useRVM         = json["useRVM"]         as? Bool   ?? true
 
         guard let arr = json["widgets"] as? [[String: Any]] else { return }
@@ -104,6 +127,7 @@ final class AppSettings {
             "segQuality":     segQuality,
             "resolution":     resolution,
             "opacity":        opacity,
+            "overlaySafeArea": overlaySafeArea,
             "useRVM":         useRVM,
             "widgets":        widgets,
         ]

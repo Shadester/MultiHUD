@@ -12,6 +12,10 @@ internal enum OverlayPosition: String {
     case bottomLeft, bottomRight, topLeft, topRight, bottomCenter, topCenter
 }
 
+internal enum OverlaySafeArea: String {
+    case fullFrame, meetingSafe, topStrip, lowerThird
+}
+
 internal enum WidgetType: String {
     case weather, clock, countup, countdown
 }
@@ -28,6 +32,7 @@ internal struct ExtensionSettings {
     var blurBackground: Bool = false
     var segQuality: VNGeneratePersonSegmentationRequest.QualityLevel = .balanced
     var opacity: Double = 1.0
+    var overlaySafeArea: OverlaySafeArea = .fullFrame
     var resolution: String = "720p"
     var cameraId: String = ""
     var useRVM: Bool = true
@@ -62,6 +67,7 @@ internal struct ExtensionSettings {
             }
         }()
         s.opacity = json["opacity"] as? Double ?? 1.0
+        s.overlaySafeArea = OverlaySafeArea(rawValue: json["overlaySafeArea"] as? String ?? "") ?? .fullFrame
         if let arr = json["widgets"] as? [[String: Any]] {
             s.widgets = arr.compactMap { d in
                 guard let typeStr = d["type"] as? String,
