@@ -10,13 +10,15 @@ A macOS app that overlays live data onto a virtual camera feed — inspired by [
   - **Weather** — current temperature and conditions via WeatherKit; survives video-app background replacement
   - **Clock** — live wall clock with timezone abbreviation
   - **Meeting timer** — countup stopwatch, start/reset from the host app or menu bar
-  - **Countdown** — counts down to a target clock time you set; stays at 0:00 when reached
+  - **Countdown** — counts down to a target clock time you set; continues as a red negative elapsed time when overdue
 - **Virtual background** — pick any image (JPEG, PNG, HEIC, …); the extension segments you using Robust Video Matting (CoreML, Neural Engine) with a Vision fallback, and composites you over it each frame
 - **Blur background** — blur your real background without a custom image
 - **Dynamic resolution** — switch between 720p and 1080p live without reinstalling the extension
+- **Overlay safe areas** — Full Frame, Meeting Safe, Top Strip, and Lower Third profiles keep widgets visible when video apps crop the feed
 - **Camera source selection** — choose which physical camera to use when multiple cameras are available
 - **Menu bar extra** — quick-access toggles for all widgets and opacity, without opening the main window
 - **Auto-launch** — the host app starts automatically the moment a video app activates the virtual camera
+- **Single host instance** — prevents a Debug launch, URL wake, or second app launch from running two host apps at once
 
 ## Requirements
 
@@ -86,6 +88,8 @@ The host app fetches weather via WeatherKit and writes it to a shared app group 
   "segQuality":     "fast",
   "resolution":     "720p",
   "opacity":        1.0,
+  "overlaySafeArea": "fullFrame",
+  "useRVM":         true,
   "widgets": [
     { "type": "weather",   "position": "bottomLeft",  "enabled": true  },
     { "type": "clock",     "position": "bottomLeft",  "enabled": false },
@@ -95,7 +99,9 @@ The host app fetches weather via WeatherKit and writes it to a shared app group 
 }
 ```
 
-- `position`: `bottomLeft` · `bottomCenter` · `bottomRight` · `topLeft` · `topRight`
+- `position`: `bottomLeft` · `bottomCenter` · `bottomRight` · `topLeft` · `topCenter` · `topRight`
+- `overlaySafeArea`: `fullFrame` · `meetingSafe` · `topStrip` · `lowerThird`
+- `useRVM`: selects the bundled Robust Video Matting model (`true`, recommended) or Apple Vision person segmentation (`false`)
 - Widgets sharing the same position are grouped into one pill; different positions each get their own pill
 - `startedAt` / `endsAt`: Unix timestamps; `0` means not running — the widget is hidden
 
