@@ -1,31 +1,31 @@
 # MultiHUD
 
-A macOS app that overlays live data onto a virtual camera feed — inspired by [PedalHUD](https://github.com/davidmokos/PedalHUD).
+MultiHUD is a macOS app that adds live data to a virtual camera feed. It is inspired by [PedalHUD](https://github.com/davidmokos/PedalHUD).
 
 ## What it does
 
-- Creates a **virtual camera** (via CoreMediaIO system extension) selectable in Zoom, Meet, Teams, etc.
-- Composites your real webcam feed with live data overlays in real time
-- **Widget overlays** — compositable pills rendered on the stream, each independently positionable:
-  - **Weather** — current temperature and conditions via WeatherKit; survives video-app background replacement
-  - **Clock** — live wall clock with timezone abbreviation
-  - **Meeting timer** — countup stopwatch, start/reset from the host app or menu bar
-  - **Countdown** — counts down to a target clock time you set; continues as a red negative elapsed time when overdue
-- **Virtual background** — pick any image (JPEG, PNG, HEIC, …); the extension segments you using Robust Video Matting (CoreML, Neural Engine) with a Vision fallback, and composites you over it each frame
-- **Blur background** — blur your real background without a custom image
-- **Dynamic resolution** — switch between 720p and 1080p live without reinstalling the extension
-- **Overlay safe areas** — Full Frame, Meeting Safe, Top Strip, and Lower Third profiles keep widgets visible when video apps crop the feed
-- **Camera source selection** — choose which physical camera to use when multiple cameras are available
-- **Menu bar extra** — quick-access toggles for all widgets and opacity, without opening the main window
-- **Auto-launch** — the host app starts automatically the moment a video app activates the virtual camera
-- **Single host instance** — prevents a Debug launch, URL wake, or second app launch from running two host apps at once
+- Creates a **virtual camera** through a CoreMediaIO system extension. You can select it in Zoom, Meet, Teams, and similar apps.
+- Combines your webcam feed with live data overlays.
+- **Widget overlays**: pills on the video stream. You can set the position of each widget.
+  - **Weather**: shows the current temperature and conditions from WeatherKit. It remains visible after a video app replaces the background.
+  - **Clock**: shows the current time and time-zone abbreviation.
+  - **Meeting timer**: a count-up timer. Start or reset it from the host app or menu bar.
+  - **Countdown**: counts down to a clock time that you set. It shows overdue time in red after the target time.
+- **Virtual background**: select a JPEG, PNG, HEIC, or another image. The extension separates you from the background with Robust Video Matting or Vision, then places you over the image.
+- **Blur background**: blurs your real background without a custom image.
+- **Dynamic resolution**: change between 720p and 1080p without reinstalling the extension.
+- **Overlay safe areas**: Full Frame, Meeting Safe, Top Strip, and Lower Third profiles keep widgets visible when video apps crop the feed.
+- **Camera source selection**: select a physical camera when more than one camera is available.
+- **Menu bar extra**: change widget settings and opacity without opening the main window.
+- **Auto-launch**: starts the host app when a video app activates the virtual camera.
+- **Single host instance**: prevents a Debug launch, URL wake, or second launch from starting two host apps.
 
 ## Requirements
 
-- macOS 15.0+
-- Apple Developer account with **WeatherKit** and **System Extension** capabilities enabled for `net.fakeapps.MultiHUD`
+- macOS 15.0 or later
+- An Apple Developer account with the **WeatherKit** and **System Extension** capabilities for `net.fakeapps.MultiHUD`
 
-## Build & Run
+## Build and run
 
 ```bash
 cd MultiHUD
@@ -35,49 +35,49 @@ cp -R ~/Library/Developer/Xcode/DerivedData/MultiHUD-*/Build/Products/Debug/Mult
 open /Applications/MultiHUD.app
 ```
 
-> System extensions require the app to run from `/Applications`.
+> Run the app from `/Applications`. System extensions need this location.
 
-## Deploy (Release build, notarize, install locally)
+## Deploy a release build
 
 ```bash
 cd MultiHUD
 bash scripts/deploy.sh
 ```
 
-Builds Release, verifies signature, notarizes via `xcrun notarytool` (keychain profile `MultiHUD`), staples, installs to `/Applications`, and relaunches the app. The keychain profile name and signing identity are specific to the original developer — fork maintainers will need to update `scripts/deploy.sh` accordingly.
+The script builds the Release version and verifies its signature. It notarizes and staples the app, installs it in `/Applications`, and starts it. It uses the `MultiHUD` keychain profile with `xcrun notarytool`. Fork maintainers must change the keychain profile name and signing identity in `scripts/deploy.sh`.
 
 ## Releases
 
-Tagged releases (`v*`) trigger a GitHub Actions workflow that builds, signs, notarizes, and publishes a `.dmg` to the [Releases](../../releases) page. The workflow requires the following repository secrets:
+A `v*` tag starts a GitHub Actions workflow. The workflow builds, signs, notarizes, and publishes a `.dmg` on the [Releases](../../releases) page. Configure these repository secrets:
 
 | Secret | Description |
 |---|---|
-| `BUILD_CERTIFICATE_BASE64` | Developer ID Application certificate (`.p12`), base64-encoded |
-| `P12_PASSWORD` | Password for the `.p12` |
-| `KEYCHAIN_PASSWORD` | Temporary keychain password used during the build |
-| `MAIN_PROFILE_BASE64` | Provisioning profile for `net.fakeapps.MultiHUD`, base64-encoded |
-| `EXTENSION_PROFILE_BASE64` | Provisioning profile for `net.fakeapps.MultiHUD.CameraExtension`, base64-encoded |
-| `APPLE_ID` | Apple ID used for notarization |
+| `BUILD_CERTIFICATE_BASE64` | Base64-encoded Developer ID Application certificate (`.p12`) |
+| `P12_PASSWORD` | Password for the `.p12` file |
+| `KEYCHAIN_PASSWORD` | Password for the temporary build keychain |
+| `MAIN_PROFILE_BASE64` | Base64-encoded provisioning profile for `net.fakeapps.MultiHUD` |
+| `EXTENSION_PROFILE_BASE64` | Base64-encoded provisioning profile for `net.fakeapps.MultiHUD.CameraExtension` |
+| `APPLE_ID` | Apple ID for notarization |
 | `APPLE_ID_PASSWORD` | App-specific password for the Apple ID |
 
 ## Architecture
 
-Two targets defined in `project.yml` (managed by [XcodeGen](https://github.com/yonaskolb/XcodeGen)):
+`project.yml` defines two targets. [XcodeGen](https://github.com/yonaskolb/XcodeGen) manages the project.
 
 | Target | Bundle ID | Role |
 |---|---|---|
-| `MultiHUD` | `net.fakeapps.MultiHUD` | Host app — SwiftUI UI, installs the extension, fetches weather |
-| `CameraExtension` | `net.fakeapps.MultiHUD.CameraExtension` | CoreMediaIO system extension — captures webcam, renders overlay |
+| `MultiHUD` | `net.fakeapps.MultiHUD` | SwiftUI host app that installs the extension and gets weather data |
+| `CameraExtension` | `net.fakeapps.MultiHUD.CameraExtension` | CoreMediaIO system extension that captures the webcam and renders overlays |
 
-The host app fetches weather via WeatherKit and writes it to a shared app group container. The extension reads those files to drive the overlay — no network calls from the extension.
+The host app gets weather data from WeatherKit. It writes the data to the shared app group container. The extension reads these files for the overlay. The extension makes no network calls.
 
 ### Shared container files
 
 | File | Written by | Read by | Purpose |
 |---|---|---|---|
-| `weather.txt` | Host app | Extension | Current temperature + weather symbol (`tempC\|tempF\|symbolName`) |
+| `weather.txt` | Host app | Extension | Current temperature and weather symbol (`tempC\|tempF\|symbolName`) |
 | `background.jpg` | Host app | Extension | Virtual background image |
-| `settings.json` | Host app | Extension | All other configuration (see below) |
+| `settings.json` | Host app | Extension | Other configuration values, shown below |
 
 #### `settings.json` schema
 
@@ -101,15 +101,15 @@ The host app fetches weather via WeatherKit and writes it to a shared app group 
 
 - `position`: `bottomLeft` · `bottomCenter` · `bottomRight` · `topLeft` · `topCenter` · `topRight`
 - `overlaySafeArea`: `fullFrame` · `meetingSafe` · `topStrip` · `lowerThird`
-- `useRVM`: selects the bundled Robust Video Matting model (`true`, recommended) or Apple Vision person segmentation (`false`)
-- Widgets sharing the same position are grouped into one pill; different positions each get their own pill
-- `startedAt` / `endsAt`: Unix timestamps; `0` means not running — the widget is hidden
+- `useRVM`: uses the bundled Robust Video Matting model when `true`. It uses Apple Vision person segmentation when `false`.
+- Widgets at the same position appear in one pill. Widgets at different positions appear in separate pills.
+- `startedAt` and `endsAt`: Unix timestamps. A value of `0` hides the widget because its timer is not running.
 
-## Tech Stack
+## Tech stack
 
-- Swift, SwiftUI — macOS 15.0+
-- CoreMediaIO / CMIOExtension (virtual camera)
-- WeatherKit + CoreLocation
-- AVFoundation (webcam capture)
-- CoreML / Vision — Robust Video Matting (Neural Engine) for person segmentation, Vision as fallback
-- CoreImage / CIFilter + Metal — compositing pipeline with guided image filter for edge refinement
+- Swift and SwiftUI for macOS 15.0 or later
+- CoreMediaIO and CMIOExtension for the virtual camera
+- WeatherKit and CoreLocation
+- AVFoundation for webcam capture
+- CoreML and Vision for person segmentation. Robust Video Matting uses the Neural Engine. Vision is the fallback.
+- CoreImage, CIFilter, and Metal for compositing. A guided image filter improves edge detail.
