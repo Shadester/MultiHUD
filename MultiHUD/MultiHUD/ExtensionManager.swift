@@ -19,7 +19,7 @@ class ExtensionManager: NSObject {
 
     private var isInstalling = false
 
-    enum State {
+    enum State: Equatable {
         case unknown, installing, uninstalling, active, rebootRequired, approvalNeeded, failed(String)
 
         var label: String {

@@ -49,7 +49,7 @@ final class HostWeatherService: NSObject {
 
     private func fetch(for location: CLLocation) {
         refreshTask?.cancel()
-        refreshTask = Task {
+        refreshTask = Task(priority: .utility) {
             while !Task.isCancelled {
                 var sleepSeconds: Int = 600
                 do {
@@ -77,7 +77,7 @@ extension HostWeatherService: CLLocationManagerDelegate {
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        Task { @MainActor in
+        Task(priority: .utility) { @MainActor in
             manager.stopUpdatingLocation()
             self.fetch(for: location)
         }
@@ -88,7 +88,7 @@ extension HostWeatherService: CLLocationManagerDelegate {
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        Task { @MainActor in
+        Task(priority: .utility) { @MainActor in
             self.locationStatus = manager.authorizationStatus
             switch manager.authorizationStatus {
             case .authorizedAlways, .authorizedWhenInUse:

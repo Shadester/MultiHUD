@@ -212,13 +212,13 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
     // (e.g. at connect time when it picks the highest-resolution format).
     func applyResolutionIndex(_ index: Int) {
         streamingQueue.async { [weak self] in
-            guard let self, index != self.activeResolutionIndex else { return }
-            self.activeResolutionIndex = index
-            self.outputBufferPool = nil
-            self.maskLock.lock()
-            self.latestMaskCI = nil
-            self.maskLock.unlock()
-            self.backgroundCI = nil
+            guard let self, index != activeResolutionIndex else { return }
+            activeResolutionIndex = index
+            outputBufferPool = nil
+            maskLock.lock()
+            latestMaskCI = nil
+            maskLock.unlock()
+            backgroundCI = nil
             logger.log("applyResolutionIndex: \(index) (\(index == 1 ? "1080p" : "720p", privacy: .public))")
         }
     }
@@ -243,35 +243,35 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             streamingQueue
         ) { [weak self] _ in
             guard let self else { return }
-            let oldResolution = self.currentSettings.resolution
-            let oldCameraId   = self.currentSettings.cameraId
-            let oldUseRVM     = self.currentSettings.useRVM
-            self.currentSettings = ExtensionSettings.load()
+            let oldResolution = currentSettings.resolution
+            let oldCameraId   = currentSettings.cameraId
+            let oldUseRVM     = currentSettings.useRVM
+            currentSettings = ExtensionSettings.load()
             let oldIndex = oldResolution == "1080p" ? 1 : 0
-            let newIndex = self.currentSettings.resolution == "1080p" ? 1 : 0
+            let newIndex = currentSettings.resolution == "1080p" ? 1 : 0
             if newIndex != oldIndex {
-                self.activeResolutionIndex = newIndex
-                self.outputBufferPool = nil
-                self.maskLock.lock()
-                self.latestMaskCI = nil
-                self.maskLock.unlock()
-                self.backgroundCI = nil
-                self.configureMatting(useRVM: self.currentSettings.useRVM,
-                                      resolution: self.currentSettings.resolution)
+                activeResolutionIndex = newIndex
+                outputBufferPool = nil
+                maskLock.lock()
+                latestMaskCI = nil
+                maskLock.unlock()
+                backgroundCI = nil
+                configureMatting(useRVM: currentSettings.useRVM,
+                                  resolution: currentSettings.resolution)
                 logger.log("Resolution switching to \(newIndex == 1 ? "1080p" : "720p", privacy: .public)")
-                self._streamSource.notifyActiveFormatChanged(newIndex)
+                _streamSource.notifyActiveFormatChanged(newIndex)
             }
-            if self.currentSettings.useRVM != oldUseRVM {
+            if currentSettings.useRVM != oldUseRVM {
                 // Engine toggle changed — reinitialise segmentation on its owning queue.
-                self.maskLock.lock()
-                self.latestMaskCI = nil
-                self.maskLock.unlock()
-                self.configureMatting(useRVM: self.currentSettings.useRVM,
-                                      resolution: self.currentSettings.resolution)
+                maskLock.lock()
+                latestMaskCI = nil
+                maskLock.unlock()
+                configureMatting(useRVM: currentSettings.useRVM,
+                                  resolution: currentSettings.resolution)
             }
-            if self.currentSettings.cameraId != oldCameraId {
+            if currentSettings.cameraId != oldCameraId {
                 logger.log("Camera ID changed, hot-swapping input")
-                self.sessionQueue.async { [weak self] in self?.switchCaptureDevice() }
+                sessionQueue.async { [weak self] in self?.switchCaptureDevice() }
             }
         }
 
@@ -314,21 +314,21 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         segmentationQueue.async { [weak self] in
             guard let self else { return }
             if useRVM {
-                if let rvm = self.rvmMatting, rvm.resolution != resolution {
+                if let rvm = rvmMatting, rvm.resolution != resolution {
                     if !rvm.switchResolution(resolution) {
-                        self.rvmMatting = RVMMatting(resolution: resolution)
+                        rvmMatting = RVMMatting(resolution: resolution)
                     }
-                } else if self.rvmMatting == nil {
-                    self.rvmMatting = RVMMatting(resolution: resolution)
+                } else if rvmMatting == nil {
+                    rvmMatting = RVMMatting(resolution: resolution)
                 }
             } else {
-                self.rvmMatting = nil
+                rvmMatting = nil
             }
 
-            let usingRVM = self.rvmMatting != nil
+            let usingRVM = rvmMatting != nil
             let failureReason = useRVM && !usingRVM ? "Failed to load model" : nil
-            self.writeCameraStatus(usingRVM: usingRVM, failureReason: failureReason)
-            self.streamingQueue.async { [weak self] in
+            writeCameraStatus(usingRVM: usingRVM, failureReason: failureReason)
+            streamingQueue.async { [weak self] in
                 self?.segmentationUsesRVM = usingRVM
             }
             logger.log("Segmentation engine configured: RVM=\(usingRVM, privacy: .public)")
@@ -493,9 +493,9 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
             let outputSize = CGSize(width: outputWidth, height: outputHeight)
             segmentationQueue.async { [weak self] in
                 guard let self else { return }
-                self.segmentationRequest.qualityLevel = quality
-                self.runSegmentation(on: buf, outputSize: outputSize)
-                self.streamingQueue.async { self.segmentationInFlight = false }
+                segmentationRequest.qualityLevel = quality
+                runSegmentation(on: buf, outputSize: outputSize)
+                streamingQueue.async { self.segmentationInFlight = false }
             }
         }
 
@@ -692,7 +692,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
         // Compute Date once so the clock widget and timer math share the same timestamp.
         let date = Date()
         let now  = date.timeIntervalSince1970
-        let enabledWidgets = settings.widgets.filter { $0.enabled }
+        let enabledWidgets = settings.widgets.filter(\.enabled)
         let groups = Dictionary(grouping: enabledWidgets, by: \.position)
         var composite = baseLayer
         for (position, widgets) in groups {
